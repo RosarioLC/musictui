@@ -1,7 +1,7 @@
 % =============================================================================
 % MusicTUI: A Terminal-Based Music Player with Synced Lyrics and ANSI Art
 % -----------------------------------------------------------------------------
-% Restyled edition.  Content, structure, figure placeholders, code listings,
+% Restyled edition.  Content, structure, code listings,
 % project macros and bibliography are unchanged; only the presentation layer
 % (preamble, environments, spacing, colour) has been redesigned.
 %
@@ -342,7 +342,7 @@
   title={\iconTest\hspace{0.55em}Testing Note}}
 
 %% ---------------------------------------------------------------------------
-%% 13.  Figure placeholders  (\fbox + \parbox kept; restyled inside figures)
+%% 13.  Figure placeholder helper  (\figfbox wraps placeholder content in a styled box)
 %% ---------------------------------------------------------------------------
 \newcommand{\figfbox}[1]{%
   \tcbox[enhanced, nobeforeafter, colback=accent!4, colframe=accent!45,
@@ -1162,7 +1162,6 @@ background worker \\
 
 \begin{figure}[H]
     \centering
-    % [FIGURE: ui_layout.png — A screenshot of the home screen showing the sidebar, recommended tracks, now-playing bar, and action hints]
     \includegraphics[width=0.9\textwidth, height=6.5cm, keepaspectratio]{ui_layout.png}
     \caption{The home screen layout showing the two-column grid with sidebar
 navigation, recommended tracks list, next-track preview, and the persistent
@@ -1269,7 +1268,6 @@ redundant computation.
 
 \begin{figure}[H]
     \centering
-    % [FIGURE: lyrics_screen.png — A screenshot of the lyrics overlay showing synced highlighted lyrics]
     \includegraphics[width=0.9\textwidth]{lyrics_screen.png}
     \caption{The lyrics overlay screen showing synchronized lyrics with the
     currently active line highlighted in green, loaded via a background
@@ -1324,7 +1322,6 @@ displays the songs in the selected playlist:
 
 \begin{figure}[H]
     \centering
-    % [FIGURE: library_screen.png — A screenshot of the library screen showing the playlist table on the left and song list on the right]
     \includegraphics[width=0.9\textwidth]{library_screen.png}
     \caption{The library screen with the two-panel layout: playlist table on
     the left and song list on the right. Supports playlist CRUD operations
@@ -1345,7 +1342,6 @@ The \fullscreensc provides a full-terminal overlay showing a large
 
 \begin{figure}[H]
     \centering
-    % [FIGURE: fullscreen_art.png — A screenshot of the fullscreen album art overlay showing large ANSI half-block colour art]
     \includegraphics[width=0.9\textwidth]{fullscreen_art.png}
     \caption{The fullscreen overlay displaying a large \ansi half-block colour
     rendering of the current track's album art, filling the terminal window.}
