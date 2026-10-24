@@ -237,3 +237,18 @@ class MusicTUI(App):
             self.notify("Nothing is playing")
             return
         self.push_screen(FullscreenScreen(track))
+
+
+def main() -> None:
+    """Entry point for the musictui package."""
+    import sys
+
+    sys.stdout.reconfigure(line_buffering=True)
+    app = MusicTUI()
+    try:
+        app.run()
+    except Exception as e:  # noqa: BLE001
+        print(f"CRASH: {e}", flush=True)
+        import traceback
+
+        traceback.print_exc(file=sys.stdout, flush=True)
