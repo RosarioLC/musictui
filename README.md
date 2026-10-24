@@ -2,6 +2,12 @@
 
 A terminal-based music player built with [Textual](https://textual.textualize.io/) that streams from YouTube Music, displays synchronized lyrics, and renders album art directly in the terminal using ANSI half-block characters.
 
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)
+![License](https://img.shields.io/github/license/RosarioLC/musictui?style=flat&color=blue)
+![Tests](https://img.shields.io/badge/tests-167_passed-4CAF50?style=flat)
+![PyPI](https://img.shields.io/pypi/v/musictui?style=flat&color=orange)
+![Stars](https://img.shields.io/github/stars/RosarioLC/musictui?style=flat&logo=github)
+
 ```
 +---------------------------------------------------+
 │  🔍 Search...                                     │
@@ -30,6 +36,24 @@ A terminal-based music player built with [Textual](https://textual.textualize.io
 - **🔀 Smart queue** — Skip, shuffle, history-aware back navigation, and repeat modes (OFF / ALL / ONE)
 - **🖥️ Fullscreen album art** — Press `F` to enter fullscreen mode with the album art rendered at full terminal resolution
 - **⚡ Background workers** — Artwork rendering, stream resolution, and lyrics fetching all happen in threaded workers with generation-based cancellation to avoid race conditions
+
+## Screenshots
+
+### Home Screen
+
+![Home Screen](images/ui_layout.png)
+
+### Lyrics Overlay
+
+![Lyrics Overlay](images/lyrics_screen.png)
+
+### Library
+
+![Library](images/library_screen.png)
+
+### Fullscreen Album Art
+
+![Fullscreen Album Art](images/fullscreen_art.png)
 
 ## Architecture
 
