@@ -1,11 +1,10 @@
-import sys
-
-sys.stdout.reconfigure(line_buffering=True)
-from ui.app import MusicTUI
-
-
 def main() -> None:
     """Entry point for the musictui package."""
+    import sys
+
+    sys.stdout.reconfigure(line_buffering=True)
+    from ui.app import MusicTUI
+
     try:
         app = MusicTUI()
         app.run()
