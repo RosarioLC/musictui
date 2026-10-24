@@ -6,24 +6,6 @@ A terminal-based music player built with [Textual](https://textual.textualize.io
 ![License](https://img.shields.io/github/license/RosarioLC/musictui?style=flat&color=blue)
 ![Tests](https://img.shields.io/badge/tests-167_passed-4CAF50?style=flat)
 
-```
-+---------------------------------------------------+
-│  🔍 Search...                                     │
-│                                                   │
-│  HOME                                             │
-│  ┌────┬──────────────────┬───────┬───────┬───────┐│
-│  │ 🎵 │ Song Title       │ Artist│ Album │ 3:45  ││
-│  │ 🎵 │ Another Song     │ Band  │ LP    │ 4:12  ││
-│  │    │ ... (scrollable) │       │       │       ││
-│  └────┴──────────────────┴───────┴───────┴───────┘│
-│                        ┌──────────────┐            │
-│                        │ Next: Track  │            │
-│                        └──────────────┘            │
-│  ▶ ⏸ ⏭  1:23 / 3:45            🔊 80%  🖥️ 📜     │
-│  [H]ome  [S]earch  [L]ibrary  [F]ullscreen  [Q]uit │
-+---------------------------------------------------+
-```
-
 ## Features
 
 - **🎧 Real-time playback** — Streams directly from YouTube Music using `ytmusicapi`, with VLC as the audio backend
