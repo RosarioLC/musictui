@@ -166,13 +166,6 @@ musictui
 python -m main
 ```
 
-### Using pip (future)
-
-```bash
-pip install musictui
-musictui
-```
-
 ## Keyboard Shortcuts
 
 | Key | Screen | Action |
