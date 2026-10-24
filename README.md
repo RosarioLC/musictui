@@ -12,7 +12,7 @@ A terminal-based music player built with [Textual](https://textual.textualize.io
 - **📜 Synchronized lyrics** — Fetches lyrics via YouTube Music and the `syncedlyrics` library, with timestamp-based highlighting as the song plays
 - **🎨 Terminal-rendered album art** — Uses NumPy and Pillow to downscale images to ANSI half-block colour characters, rendered in real-time
 - **📋 Playlist management** — Create new playlists (N), add currently playing track to a playlist (A), remove tracks (D), and delete playlists
-- **🔀 Smart queue** — Skip, shuffle, history-aware back navigation, and repeat modes (OFF / ALL / ONE)
+- **🔀 Smart queue** — Skip, history-aware back navigation, and repeat modes (OFF / ALL / ONE)
 - **🖥️ Fullscreen album art** — Press `F` to enter fullscreen mode with the album art rendered at full terminal resolution
 - **⚡ Background workers** — Artwork rendering, stream resolution, and lyrics fetching all happen in threaded workers with generation-based cancellation to avoid race conditions
 
