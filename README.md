@@ -184,3 +184,9 @@ python -m main
 ## License
 
 MIT
+
+## Disclaimer
+
+MusicTUI is not affiliated with, endorsed by, or connected to YouTube, Google, or Alphabet Inc.
+All music content is streamed directly from YouTube's servers via the ytmusicapi library.
+YouTube Music trademarks and content belong to their respective owners.
