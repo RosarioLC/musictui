@@ -30,7 +30,8 @@ dev = [
 musictui = "main:main"
 
 [tool.setuptools.packages.find]
-include = ["catalog", "model", "playback", "services", "store", "ui", "tests"]
+include = ["catalog", "main", "model", "playback", "services", "store", "ui", "tests"]
+exclude = ["images*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.tcss"]
