@@ -492,7 +492,7 @@
 ANSI Half-Block Colour Art, and Event-Driven Architecture}}
 \author{\textbf{MusicTUI Project}\\[3pt]
   {\small Open-source software project}\\[1pt]
-  {\small\href{https://github.com/username/musictui}{\texttt{github.com/username/musictui}}}}
+  {\small\href{https://github.com/RosarioLC/musictui}{\texttt{github.com/RosarioLC/musictui}}}}
 \date{\today}
 
 \begin{document}
@@ -569,6 +569,8 @@ Section~7 documents the storage layer. Section~8 describes the testing
 strategy. Section~9 covers installation and usage. Section~10 outlines future
 work. Section~11 concludes.
 
+\newpage
+
 \section{System Architecture}
 
 \musictui employs a four-layer architecture that enforces unidirectional data
@@ -577,43 +579,7 @@ overall layered structure.
 
 \begin{figure}[H]
     \centering
-    \begin{tikzpicture}[
-        layer/.style={
-            draw=blue!60!black, fill=blue!6, minimum width=0.82\textwidth,
-            minimum height=1.6cm, rounded corners=3pt, align=center,
-            font=\sffamily\bfseries\footnotesize
-        },
-        item/.style={font=\sffamily\scriptsize, text=black!60},
-        dep/.style={->, thick, blue!50!black, >=stealth},
-        di/.style={->, thick, red!50!black, >=stealth, dashed}
-    ]
-    % Four layers
-    \node[layer] (ui) at (0,7.2) {Presentation Layer (UI)};
-    \node[item] at (0,6.3) {HomeScreen \textperiodcentered\ LibraryScreen \textperiodcentered\ SearchScreen \textperiodcentered\ PlaylistScreen \textperiodcentered\ NowPlayingBar \textperiodcentered\ LyricsPanel};
-
-    \node[layer] (svc) at (0,4.8) {Service Layer};
-    \node[item] at (0,3.9) {CatalogService \textperiodcentered\ PlaybackService \textperiodcentered\ LibraryService};
-
-    \node[layer] (dom) at (0,2.4) {Domain Layer};
-    \node[item] at (0,1.5) {Track \textperiodcentered\ LyricLine \textperiodcentered\ Playlist \textperiodcentered\ PlayState \textperiodcentered\ RepeatMode \textperiodcentered\ MusicQueue};
-
-    \node[layer] (sto) at (0,0) {Storage Layer};
-    \node[item] at (0,-0.9) {Database \textperiodcentered\ PlaylistStore \textperiodcentered\ LikedSongStore};
-
-    % Dependency arrows (downward)
-    \draw[dep] (ui.south) -- (svc.north);
-    \draw[dep] (svc.south) -- (dom.north);
-    \draw[dep] (dom.south) -- (sto.north);
-
-    % DI arrows (upward, dashed)
-    \draw[di] (sto.north) -- (dom.south);
-    \draw[di] (dom.north) -- (svc.south);
-    \draw[di] (svc.north) -- (ui.south);
-
-    % Side labels
-    \node[rotate=90, font=\sffamily\scriptsize\bfseries, blue!50!black] at (-4.6, 3.6) {Data Flow \& Dependencies};
-    \node[rotate=90, font=\sffamily\scriptsize\bfseries, red!50!black] at (4.6, 3.6) {Dependency Injection};
-    \end{tikzpicture}
+    \includegraphics[width=\textwidth]{architecture_overview}
     \caption{Layered architecture overview showing the four layers of \musictui
     and their interdependencies. Arrows indicate that higher layers depend on
     lower layers, with dependency injection flowing in the opposite direction.}
@@ -836,26 +802,7 @@ class RepeatMode(Enum):
 
 \begin{figure}[H]
     \centering
-    \begin{tikzpicture}[>=stealth, node distance=2.8cm,
-        state/.style={circle, draw=blue!60!black, fill=blue!6, minimum size=2.2cm,
-            font=\sffamily\bfseries\footnotesize, align=center}
-    ]
-    \node[state] (off) at (0,2.2) {OFF};
-    \node[state] (all) at (2.8,0) {ALL};
-    \node[state] (one) at (-2.8,0) {ONE};
-
-    \draw[->, thick, blue!50!black] (off) to[bend left=20]
-        node[right, font=\sffamily\scriptsize, text=blue!50!black] {next\_mode()} (all);
-    \draw[->, thick, blue!50!black] (all) to[bend left=20]
-        node[below, font=\sffamily\scriptsize, text=blue!50!black] {next\_mode()} (one);
-    \draw[->, thick, blue!50!black] (one) to[bend left=20]
-        node[left, font=\sffamily\scriptsize, text=blue!50!black] {next\_mode()} (off);
-
-    % Value labels
-    \node[font=\sffamily\tiny, text=black!50] at (0,1.5) {(value 0)};
-    \node[font=\sffamily\tiny, text=black!50] at (2.3,-0.5) {(value 1)};
-    \node[font=\sffamily\tiny, text=black!50] at (-2.3,-0.5) {(value 2)};
-    \end{tikzpicture}
+    \includegraphics[width=0.64\textwidth]{repeat_mode_diagram}
     \caption{The repeat mode cycle diagram showing the three states and
     transitions via the \method{next\_mode()} method.}
     \label{fig:repeat_mode}
@@ -984,6 +931,8 @@ The \method{on\_track\_ended()} method implements the repeat logic:
 \repeatmode.ONE restarts the current track, while \repeatmode.ALL and
 \repeatmode.OFF advance to the next track in the queue.
 
+\newpage
+
 \section{Catalog Integration}
 
 The catalog subsystem provides music discovery and metadata retrieval through
@@ -1026,6 +975,8 @@ class YTMusicSource(CatalogSource):
         )
 \end{lstlisting}
 
+\newpage
+
 \subsection{Lyrics Fetching Pipeline}
 
 The lyrics fetching system implements a four-tier fallback pipeline to
@@ -1033,62 +984,7 @@ maximize coverage:
 
 \begin{figure}[H]
     \centering
-    \begin{tikzpicture}[>=stealth,
-        tier/.style={
-            draw=blue!60!black, fill=blue!6, minimum width=0.75\textwidth,
-            align=center, font=\sffamily\bfseries\footnotesize,
-            inner sep=4pt, rounded corners=2pt
-        },
-        arrow/.style={->, thick, blue!50!black},
-        fail/.style={->, thick, red!40!black, dashed}
-    ]
-    % Input
-    \node[draw=black!30, fill=gray!5, minimum width=0.5\textwidth,
-        align=center, font=\sffamily\scriptsize, rounded corners=2pt]
-        (input) at (0,7) {Track: ``Artist -- Title''};
-
-    % Tiers
-    \node[tier] (t1) at (0,5.5) {Tier 1: YouTube Music (ytmusicapi)};
-    \node[font=\sffamily\tiny, text=black!50] at (0,5.0) {
-        \texttt{client.get\_watch\_playlist(videoId)} \\
-        \texttt{client.get\_lyrics(lyricsId)}
-    };
-
-    \node[tier] (t2) at (0,3.2) {Tier 2: lrclib.net API};
-    \node[font=\sffamily\tiny, text=black!50] at (0,2.7) {
-        \texttt{GET /api/search?track\_name=\&artist\_name=} \\
-        \texttt{syncedLyrics or plainLyrics}
-    };
-
-    \node[tier] (t3) at (0,0.8) {Tier 3: syncedlyrics Library};
-    \node[font=\sffamily\tiny, text=black!50] at (0,0.3) {
-        \texttt{syncedlyrics.search(artist title)} \\
-        \texttt{LRC-formatted output}
-    };
-
-    \node[tier] (t4) at (0,-1.6) {Tier 4: Linear Distribution};
-    \node[font=\sffamily\tiny, text=black!50] at (0,-2.1) {
-        Split text into lines, distribute evenly \\
-        across \texttt{track.duration\_ms}
-    };
-
-    % Output
-    \node[draw=green!60!black, fill=green!6, minimum width=0.5\textwidth,
-        align=center, font=\sffamily\bfseries\footnotesize, rounded corners=2pt]
-        (output) at (0,-3.6) {[LyricLine(timestamp\_ms, text)]};
-
-    % Arrows
-    \draw[arrow] (input.south) -- (t1.north);
-    \draw[arrow] (t1.south) -- (t2.north);
-    \draw[arrow] (t2.south) -- (t3.north);
-    \draw[arrow] (t3.south) -- (t4.north);
-    \draw[arrow] (t4.south) -- (output.north);
-
-    % Fallback labels
-    \node[font=\sffamily\tiny, text=red!60!black, rotate=-90] at (-2.3, 4.35) {empty?};
-    \node[font=\sffamily\tiny, text=red!60!black, rotate=-90] at (-2.3, 2.05) {empty?};
-    \node[font=\sffamily\tiny, text=red!60!black, rotate=-90] at (-2.3,-0.35) {empty?};
-    \end{tikzpicture}
+    \includegraphics[width=\textwidth]{lyrics_pipeline}
     \caption{Lyrics fetching pipeline: a four-tier fallback system that maximises
     coverage by attempting YouTube Music, then lrclib.net, then syncedlyrics,
     and finally falling back to linear time distribution.}
@@ -1239,6 +1135,7 @@ view of the application:
 
 \begin{table}[H]
 \centering
+\small
 \caption{Screen overview table describing each screen's purpose and key
 features.}
 \label{tab:screens}
@@ -1266,7 +1163,7 @@ background worker \\
 \begin{figure}[H]
     \centering
     % [FIGURE: ui_layout.png — A screenshot of the home screen showing the sidebar, recommended tracks, now-playing bar, and action hints]
-    \includegraphics[width=0.9\textwidth]{ui_layout.png}
+    \includegraphics[width=0.9\textwidth, height=6.5cm, keepaspectratio]{ui_layout.png}
     \caption{The home screen layout showing the two-column grid with sidebar
 navigation, recommended tracks list, next-track preview, and the persistent
 now-playing bar at the bottom.}
@@ -1280,51 +1177,7 @@ shows the main groupings.
 
 \begin{figure}[H]
     \centering
-    \begin{tikzpicture}[
-        charbox/.style={draw=black!30, fill=gray!3, minimum size=0.6cm,
-            inner sep=0pt, outer sep=1pt},
-        pixel/.style={inner sep=0pt, minimum size=0.28cm}
-    ]
-    % Title
-    \node[font=\sffamily\bfseries\footnotesize, text=blue!60!black]
-        at (0,3.2) {ANSI Half-Block Colour Rendering};
-
-    % Row 1: Top pixel row (background colour)
-    \node[font=\sffamily\scriptsize\bfseries, text=black!50]
-        at (-3.5,2.4) {Top pixel row};
-    \foreach \c [count=\i] in {red,blue,green,yellow,purple,cyan,orange,magenta,teal,lime,brown,pink} {
-        \node[pixel, fill=\c!60] (b\i) at (-2.8 + \i * 0.5,2.4) {};
-    }
-
-    % Row 2: Bottom pixel row (foreground colour)
-    \node[font=\sffamily\scriptsize\bfseries, text=black!50]
-        at (-3.5,1.7) {Bottom pixel row};
-    \foreach \c [count=\i] in {blue,green,red,cyan,yellow,magenta,purple,orange,teal,lime,brown,pink} {
-        \node[pixel, fill=\c!60] (f\i) at (-2.8 + \i * 0.5,1.7) {};
-    }
-
-    % Arrow down
-    \draw[->, thick, black!50] (-3.5,1.4) -- (-3.5,0.8);
-    \node[font=\sffamily\scriptsize\bfseries, text=black!50]
-        at (-3.5,1.1) {combine};
-
-    % Rendered half-block characters
-    \node[font=\sffamily\scriptsize\bfseries, text=black!50]
-        at (-3.5,0.3) {Rendered};
-    \foreach \i/\fc [count=\bi] in {
-        1/blue, 2/green, 3/red, 4/cyan, 5/yellow, 6/magenta,
-        7/purple, 8/orange, 9/teal, 10/lime, 11/brown, 12/pink
-    } {
-        \node[charbox, fill=\fc!30, draw=\fc!60!black, thin]
-            at (-2.8 + \i * 0.5, 0.3) {\textcolor{\fc}{\textbf{\textsf{b}}}};
-    }
-
-    % Explanation
-    \node[font=\sffamily\tiny, text=black!40, align=center]
-        at (0,-0.8) {Each terminal character uses the top pixel as\\
-        background colour and the bottom pixel as foreground colour,\\
-        producing a dense full-colour image with half-block glyphs (\textbackslash u2584)};
-    \end{tikzpicture}
+    \includegraphics[width=\textwidth]{ansi_art_example}
     \caption{ANSI half-block colour rendering: each terminal character
 combines two pixel rows -- the top row as background colour and the bottom
 row as foreground colour -- producing a dense, full-colour image.}
@@ -1453,46 +1306,15 @@ Message types include: \texttt{PlaybackStarted}, \texttt{PlaybackEnded},
 
 \begin{figure}[H]
     \centering
-    \begin{tikzpicture}[>=stealth,
-        participant/.style={
-            draw=blue!60!black, fill=blue!6, minimum width=1.6cm,
-            align=center, font=\sffamily\scriptsize\bfseries,
-            inner sep=3pt
-        },
-        msg/.style={->, thick, blue!50!black},
-        altmsg/.style={->, thick, red!40!black, dashed}
-    ]
-    % Participants across the top
-    \foreach \x/\name [count=\i] in {
-        {0}/User, {1.6}/TrackList, {3.4}/Screen,
-        {5.2}/PlaybackService, {7.0}/Player, {8.8}/EventBus,
-        {10.8}/NowPlayingBar
-    } {
-        \node[participant] (p\i) at (\x,5.5) {\name};
-        \draw[dashed, black!30] (p\i.south) -- (p\i.south |- 0,0);
-    }
-
-    % Message arrows
-    \draw[msg] (p1) -- node[above, font=\sffamily\tiny] {click(track)} (p2);
-    \draw[msg] (p2) -- node[above, font=\sffamily\tiny] {on\_track\_selected} (p3);
-    \draw[msg] (p3) -- node[above, font=\sffamily\tiny] {play(track)} (p4);
-    \draw[msg] (p4) -- node[above, font=\sffamily\tiny] {play(track)} (p5);
-    \draw[msg] (p5) -- node[above, font=\sffamily\tiny] {emit(PlaybackStarted)} (p6);
-    \draw[msg] (p6) -- node[above, font=\sffamily\tiny] {handle()} (p7);
-
-    % Position update broadcast
-    \draw[msg] (p5) -- node[above, font=\sffamily\tiny] {emit(PositionUpdated)} (p6);
-    \draw[msg] (p6) -- node[above, font=\sffamily\tiny, pos=0.3] {handle()} (p3);
-
-    \node[font=\sffamily\scriptsize, text=black!50] at (5.5, -0.3) {
-        (Rightward arrows = synchronous calls; downward = event broadcast)};
-    \end{tikzpicture}
+    \includegraphics[width=\textwidth]{event_flow}
     \caption{Sequence diagram showing the event flow when a user clicks a
     track: the click propagates through the track list widget to the screen,
     which calls the playback service, which notifies the player, which posts
     messages to the event bus, which are consumed by all subscribed widgets.}
     \label{fig:event_flow}
 \end{figure}
+
+\newpage
 
 \subsection{Library Screen}
 

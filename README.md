@@ -35,9 +35,10 @@ A terminal-based music player built with [Textual](https://textual.textualize.io
 
 ```
 music/
-├── main.py                          # Application entry point
-├── pyproject.toml                   # Dependencies & project metadata
+├── main.py                          # Package entry point (musictui CLI command)
+├── pyproject.toml                   # Package metadata, dependencies, and CLI entry point
 ├── config.py                        # Local configuration (API keys, paths)
+├── LICENSE                          # MIT License
 ├── model/
 │   ├── track.py                     # Immutable Track dataclass (slots=True, frozen=True)
 │   ├── lyric_line.py                # Timed lyric line model
@@ -141,21 +142,32 @@ A companion academic paper describing the architecture and implementation is inc
 
 ## Installation
 
+### From source
+
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/music.git
-cd music
+git clone https://github.com/RosarioLC/musictui.git
+cd musictui
 
 # Create and activate a virtual environment
 python -m venv .venv
 .venv\Scripts\activate       # Windows
 source .venv/bin/activate    # macOS / Linux
 
-# Install dependencies
+# Install in development mode
 pip install -e ".[dev]"
 
 # Run the app
+musictui
+# or
 python -m main
+```
+
+### Using pip (future)
+
+```bash
+pip install musictui
+musictui
 ```
 
 ## Keyboard Shortcuts
@@ -183,7 +195,7 @@ python -m main
 
 ## License
 
-MIT
+[MIT License](LICENSE) — Copyright (c) 2025 RosarioLC
 
 ## Disclaimer
 
