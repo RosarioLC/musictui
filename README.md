@@ -5,8 +5,6 @@ A terminal-based music player built with [Textual](https://textual.textualize.io
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)
 ![License](https://img.shields.io/github/license/RosarioLC/musictui?style=flat&color=blue)
 ![Tests](https://img.shields.io/badge/tests-167_passed-4CAF50?style=flat)
-![PyPI](https://img.shields.io/pypi/v/musictui?style=flat&color=orange)
-![Stars](https://img.shields.io/github/stars/RosarioLC/musictui?style=flat&logo=github)
 
 ```
 +---------------------------------------------------+
