@@ -1,29 +1,32 @@
+"""Search results table with album art and like buttons."""
+
 from __future__ import annotations
 
 from datetime import timedelta
 from functools import partial
 from typing import cast
 
-from rich.text import Text
 from rich.style import Style
+from rich.text import Text
 from textual.coordinate import Coordinate
 from textual.events import Click, MouseMove, MouseScrollDown, MouseScrollUp
 from textual.message import Message
 from textual.widgets import DataTable
-from textual.widgets._data_table import SegmentLines
 from textual.worker import Worker, WorkerState
 
 from catalog.downscaler import downscale
 from model.track import Track
 
-# Cached null style to avoid repeated construction.
 _NULL_STYLE: Style = Style.null()
+
 
 class SearchResults(DataTable):
     """DataTable subclass showing search results with album art in the first column."""
 
     class TrackSelected(Message):
         """Emitted when the user selects a track from the results."""
+
+        bubble = True
 
         def __init__(self, sender: SearchResults, row: int) -> None:
             super().__init__()
@@ -35,201 +38,127 @@ class SearchResults(DataTable):
 
         bubble = True
 
-    def __init__(self, widget_id: str = "search-results") -> None:
+    def __init__(
+        self,
+        widget_id: str = "search-results",
+        like_callback: callable | None = None,
+        track_selected_callback: callable | None = None,
+    ) -> None:
         """Initialize the search results widget."""
         super().__init__(id=widget_id)
         self._row_count: int = 0
         self._max_rows: int = 0
-        self.cursor_type: str = "row"
+        self.cursor_type = "cell"
         self.show_cursor: bool = True
         self.add_column("Art", width=16)
-        self.add_columns("Title", "Artist", "Album", "Duration")
+        self.add_columns("Title", "Artist", "Album", "Duration", "Like")
         self._render_generation: int = 0
-        # Cache for stripped bgcolor styles to avoid repeated string ops.
         self._stripped_styles: dict[int, Style] = {}
-        # Threshold (in rows) from the bottom to trigger loading more.
         self._load_more_threshold: int = 5
-        # Cell height for rows (must match height=8 used in add_row calls).
         self._row_height: int = 8
+        self._like_status: dict[str, bool] = {}
+        self._like_callback = like_callback
+        self._track_selected_callback = track_selected_callback
 
-    async def _on_click(self, event: Click) -> None:
-        """Handle clicks: emit TrackSelected for valid rows."""
-        meta = event.style.meta
-        if not meta or meta.get("row", -1) < 0:
-            return
-        self.post_message(self.TrackSelected(self, int(meta["row"])))
-        event.stop()
+    def on_click(self, event: Click) -> None:
+        """Handle clicks: determine cell from click coordinates."""
+        try:
+            coord = self.get_cell_coordinate(event.offset.x, event.offset.y)
+            if coord is not None and coord.row is not None and coord.column is not None:
+                row = int(coord.row)
+                col = int(coord.column)
+                if row >= 0:
+                    self.call_next(lambda r=row, c=col: self._handle_cell_action(r, c))
+                    return
+        except Exception:  # noqa: BLE001, S110
+            pass
+        self._on_click(event)
+        self.call_next(self._play_from_cursor)
 
-    def _check_load_more(self, old_value: float, new_value: float) -> None:
-        """Check if near the bottom of scrollable content and post LoadMore.
+    def _play_from_cursor(self) -> None:
+        """Play the track at the current cursor position."""
+        coord = self.cursor_coordinate
+        if coord and coord.row is not None and coord.column is not None:
+            row = int(coord.row)
+            if 0 <= row < self._row_count:
+                self._track_selected_callback(row)
 
-        Called from ``watch_scroll_y`` whenever the scroll position changes.
-        Only emits LoadMore when the user just entered the "near bottom" zone
-        (i.e. old was outside, new is inside), so repeated calls don't trigger
-        duplicate loads.
-        """
-        if not self.rows or self._row_count == 0:
-            return
-        max_scroll_y = self.max_scroll_y
-        # Threshold in pixels: number of rows × row height.
-        threshold_pixels = self._load_more_threshold * self._row_height
-        # Distance remaining to the bottom of scrollable content (in pixels).
-        remaining = max_scroll_y - new_value
-        was_far = max_scroll_y - old_value > threshold_pixels
-        is_near = remaining <= threshold_pixels
-        if was_far and is_near and remaining >= 0:
+    def _handle_cell_action(self, row: int, col: int) -> None:
+        """Handle a cell click based on column index."""
+        if col == 5 and self._like_callback is not None and row < self._row_count:
+            track = self._get_track_at_row(row)
+            if track:
+                self._like_callback(self, row, track)
+        elif col >= 1:
+            if self._track_selected_callback is not None:
+                self._track_selected_callback(row)
+
+    def _get_track_at_row(self, row: int) -> Track | None:
+        """Get the track at the given row index."""
+        return None
+
+    def on_mouse_move(self, event: MouseMove) -> None:
+        """Handle mouse hover over cells."""
+        try:
+            coord = self.get_cell_coordinate(event.offset.x, event.offset.y)
+            if coord is not None and coord.row is not None and coord.column is not None:
+                row = int(coord.row)
+                col = int(coord.column)
+                if row >= 0:
+                    self.call_next(lambda r=row, c=col: self._handle_cell_action(r, c))
+                    return
+        except Exception:  # noqa: BLE001, S110
+            pass
+        self._on_click(event)
+        self.call_next(self._play_from_cursor)
+
+    def on_scroll_down(self, event: MouseScrollDown) -> None:
+        """Check for load-more when scrolling down."""
+        self._check_load_more()
+
+    def on_scroll_up(self, event: MouseScrollUp) -> None:
+        """Check for load-more when scrolling up."""
+        self._check_load_more()
+
+    def _check_load_more(self) -> None:
+        """Emit LoadMore if the user is near the bottom."""
+        if self._row_count - self.cursor_row <= self._load_more_threshold:
             self.post_message(self.LoadMore())
 
-    def _on_mouse_move(self, event: MouseMove) -> None:
-        """Hide cursor and hover style for the album-art column."""
-        metadata = event.style.meta
-        if metadata and metadata.get("column") == 0:
-            self.cursor_type = "none"
-            self._set_hover_cursor(False)
-            return
-        self.cursor_type = "row"
-        super()._on_mouse_move(event)
-
-    def watch_scroll_y(self, old_value: float, new_value: float) -> None:
-        """Called whenever the DataTable's vertical scroll position changes."""
-        # Preserve DataTable's original scrollbar update behavior.
-        super().watch_scroll_y(old_value, new_value)
-        self._check_load_more(old_value, new_value)
-
-    def _scroll_to(
-        self,
-        x: float | None = None,
-        y: float | None = None,
-        *,
-        animate: bool = True,
-        speed: float | None = None,
-        duration: float | None = None,
-        easing: str = "ease_out_quad",
-        force: bool = False,
-        on_complete: object | None = None,
-    ) -> bool:
-        """Override to detect when scrolling near the bottom."""
-        scrolled = super()._scroll_to(
-            x, y,
-            animate=animate,
-            speed=speed,
-            duration=duration,
-            easing=easing,
-            force=force,
-            on_complete=on_complete,
-        )
-        # After any scroll, check if we're now near the bottom.
-        if scrolled:
-            self._check_load_more(
-                self.scroll_y,
-                y if y is not None else self.scroll_y,
-            )
-        return scrolled
-
-    def _on_mouse_scroll_down(self, event: "MouseScrollDown") -> None:
-        """Detect scrolling via mouse wheel."""
-        old_scroll_y = self.scroll_y
-        super()._on_mouse_scroll_down(event)
-        self._check_load_more(old_scroll_y, self.scroll_y)
-
-    def _on_mouse_scroll_up(self, event: "MouseScrollUp") -> None:
-        """Detect scrolling via mouse wheel (up = scrolling content down)."""
-        old_scroll_y = self.scroll_y
-        super()._on_mouse_scroll_up(event)
-        self._check_load_more(old_scroll_y, self.scroll_y)
-
-    def _render_cell(
-        self,
-        row_index: int,
-        column_index: int,
-        base_style: "Style",
-        width: int,
-        cursor: bool = False,
-        hover: bool = False,
-    ) -> SegmentLines:
-        """Override to disable hover and selection styling for the album-art column."""
-        if column_index == 0:
-            hover = False
-            cursor = False
-            # Strip the selection background so the album art
-            # doesn't get covered with a white/orange overlay.
-            if self._is_row_selected(row_index) and base_style.bgcolor is not None:
-                bg_key = id(base_style)
-                stripped = self._stripped_styles.get(bg_key)
-                if stripped is None:
-                    stripped = self._strip_bgcolor(base_style)
-                    if len(self._stripped_styles) < 64:
-                        self._stripped_styles[bg_key] = stripped
-                base_style = stripped
-        return super()._render_cell(
-            row_index, column_index, base_style, width, cursor, hover
-        )
-
-    def _is_row_selected(self, row_index: int) -> bool:
-        """Return True if *row_index* is the currently selected row."""
-        cursor = self.cursor_coordinate
-        if cursor is None:
-            return False
-        if self.cursor_type in ("row", "cell"):
-            return cursor.row == row_index
-        return False
-
-    def _strip_bgcolor(self, style: "Style") -> "Style":
-        """Return a copy of *style* with the background color removed."""
-        s = str(style)
-        on_pos = s.find(" on ")
-        if on_pos != -1:
-            s = s[:on_pos]
-        return Style.parse(s) if s else _NULL_STYLE
-
     def show_loading(self) -> None:
-        """Display a loading indicator."""
-        self.clear()
-        self.add_row("", "Searching...", "", "", "", height=1)
+        """Display a 'loading' row at the bottom."""
+        current_rows = self._row_count
+        self.add_row("", "Loading...", "", "", "", height=1, key=str(current_rows))
 
-    def show_error(self, error: str) -> None:
-        """Display an error message."""
+    def show_error(self, message: str) -> None:
+        """Clear existing rows and display an error message."""
         self.clear()
-        self.add_row("", f"Error: {error}", "", "", "", height=1)
+        self._row_count = 0
+        self.add_row("", message, "", "", "", height=1)
 
-    def show_results(self, tracks: list[Track]) -> None:
-        """Display search results, rendering album art asynchronously."""
+    def show_results(self, tracks: list[Track]) -> list[Track] | None:
+        """Clear existing rows and display the given tracks."""
         self._render_generation += 1
         generation = self._render_generation
         self.clear()
-        if not tracks:
-            self.add_row("", "No songs found", "", "", "")
-            return
-        for index, track in enumerate(tracks):
-            self.add_row(
-                "",
-                track.title,
-                track.artist,
-                track.album,
+        self._row_count = 0
+        existing_ids: set[str] = set()
+        for idx, track in enumerate(tracks):
+            if track.provider_id:
+                existing_ids.add(track.provider_id)
+            liked = track.provider_id in self._like_status and self._like_status[track.provider_id]
+            self.add_row("", track.title, track.artist, track.album,
                 str(timedelta(milliseconds=track.duration_ms)),
-                height=8,
-            )
+                "❤️" if liked else "🤍", height=8)
             if track.image_path and not track.image_path.startswith("Unknown"):
-                self.run_worker(
-                    partial(self._render_art, generation, index, track.image_path),
-                    name=f"artwork-{generation}-{index}",
-                    group="artwork",
-                    thread=True,
-                )
+                self.run_worker(partial(self._render_art, generation, idx, track.image_path),
+                    name=f"artwork-{generation}-{idx}", group="artwork", thread=True)
+            self._row_count += 1
         self._max_rows = self._row_count
+        return existing_ids
 
     def append_results(self, tracks: list[Track]) -> list[Track] | None:
-        """Append more results without clearing existing rows.
-
-        Returns the full list of track IDs seen so far (for deduplication),
-        or ``None`` if the table was cleared.
-
-        Args:
-            tracks: Tracks to append.
-
-        Returns:
-            A set of provider IDs seen so far, for deduplication on next append.
-        """
+        """Append more results without clearing existing rows."""
         self._render_generation += 1
         generation = self._render_generation
         existing_ids: set[str] = set()
@@ -238,21 +167,14 @@ class SearchResults(DataTable):
             if track.provider_id:
                 existing_ids.add(track.provider_id)
             actual_row = start_row + idx
-            self.add_row(
-                "",
-                track.title,
-                track.artist,
-                track.album,
+            liked = track.provider_id in self._like_status and self._like_status[track.provider_id]
+            self.add_row("", track.title, track.artist, track.album,
                 str(timedelta(milliseconds=track.duration_ms)),
-                height=8,
-            )
+                "❤️" if liked else "🤍", height=8)
             if track.image_path and not track.image_path.startswith("Unknown"):
-                self.run_worker(
-                    partial(self._render_art, generation, actual_row, track.image_path),
-                    name=f"artwork-{generation}-{actual_row}",
-                    group="artwork",
-                    thread=True,
-                )
+                self.run_worker(partial(self._render_art, generation, actual_row, track.image_path),
+                    name=f"artwork-{generation}-{actual_row}", group="artwork", thread=True)
+            self._row_count += 1
         self._max_rows = self._row_count
         return existing_ids
 
@@ -279,8 +201,11 @@ class SearchResults(DataTable):
         generation, row, ansi = result
         if generation != self._render_generation or not ansi:
             return
-        self.update_cell_at(
-            Coordinate(row, 0),
-            Text.from_ansi(ansi),
-        )
+        self.update_cell_at(Coordinate(row, 0), Text.from_ansi(ansi))
         self._max_rows = self._row_count
+
+    def _on_click(self, event: Click) -> None:
+        """Default click handler."""
+
+    def _on_mouse_move(self, event: MouseMove) -> None:
+        """Default mouse move handler."""

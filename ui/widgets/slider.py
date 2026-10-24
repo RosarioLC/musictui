@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from rich.text import Text
+from textual.events import Click
 from textual.message import Message
 from textual.reactive import reactive
-from textual.events import Click
 from textual.widget import Widget
-from rich.text import Text
 
 
 class Slider(Widget):
@@ -55,9 +55,7 @@ class Slider(Widget):
         """Render the slider as two lines of block characters."""
         width: int = max(self.size.width, 1)
         maximum: float = max(float(self.maximum), 1.0)
-        filled: int = round(
-            min(max(float(self.value) / maximum, 0.0), 1.0) * width
-        )
+        filled: int = round(min(max(float(self.value) / maximum, 0.0), 1.0) * width)
         remainder: int = width - filled
         line: Text = Text.assemble(
             ("█" * filled, "#1ed760 bold"),

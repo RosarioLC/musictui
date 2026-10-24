@@ -2,7 +2,6 @@ from textual.app import ComposeResult
 from textual.widgets import Static
 
 from ui.widgets.player_controls import PlayerControls
-from ui.widgets.track_progress import TrackProgress
 from ui.widgets.progress_row import ProgressRow
 
 

@@ -1,16 +1,27 @@
+"""Resolve track metadata into playable stream URLs."""
+
 from model.track import Track
 
 
 class StreamResolver:
-    """Resolve track metadata into playable stream URLs."""
+    """Simple stream resolver that returns the track's URL as-is.
+
+    This is the default / fallback resolver.  More sophisticated
+    implementations (e.g. using yt_dlp to extract direct audio URLs)
+    can replace this class via dependency injection.
+    """
 
     def resolve(self, track: Track) -> str:
-        """Return the stream URL for a track.
+        """Return the track's URL as the stream URL.
+
+        This is a pass-through resolver: it does not perform any network
+        requests or URL transformation.
 
         Args:
-            track: The track to resolve.
+            track: The track whose URL to return.
 
         Returns:
-            The track's URL. Returns an empty string if unavailable.
+            The value of :attr:`~model.track.Track.url`.  Returns an empty
+            string if the track has no URL set.
         """
         return track.url

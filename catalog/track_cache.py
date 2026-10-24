@@ -1,8 +1,8 @@
-from model.track import Track
 from collections import OrderedDict
-from model.lyric_line import LyricLine
-from typing import TypeVar, Generic
+from typing import Generic, TypeVar
 
+from model.lyric_line import LyricLine
+from model.track import Track
 
 _K = TypeVar("_K")
 _V = TypeVar("_V")
@@ -58,6 +58,8 @@ class TrackCache:
     """In-memory LRU cache for track metadata, lyrics, and stream URLs.
 
     Maintains three independent caches, each with its own LRU policy.
+    Lyrics are keyed by a hash of (artist, title) so that different
+    track objects for the same song share cached lyrics.
     """
 
     def __init__(self, max_size: int = 8) -> None:
@@ -68,7 +70,7 @@ class TrackCache:
         """
         self._max_size: int = max_size
         self._tracks: _LRUCache[int, Track] = _LRUCache(max_size)
-        self._lyrics: _LRUCache[int, list[LyricLine]] = _LRUCache(max_size)
+        self._lyrics: _LRUCache[str, list[LyricLine]] = _LRUCache(max_size)
         self._streams: _LRUCache[int, str] = _LRUCache(max_size)
 
     def get(self, track_id: int) -> Track | None:
@@ -79,21 +81,36 @@ class TrackCache:
         """Cache a track by its ID."""
         self._tracks.put(track.id, track)
 
-    def get_lyrics(self, track_id: int) -> list[LyricLine] | None:
+    @staticmethod
+    def _lyrics_key(track: Track) -> str:
+        """Return a cache key derived from artist + title."""
+        artist = " ".join(track.artist.lower().split())
+        title = " ".join(track.title.lower().split())
+        return f"{artist}|{title}"
+
+    def get_lyrics(self, track: Track) -> list[LyricLine] | None:
         """Retrieve cached lyrics for a track."""
-        return self._lyrics.get(track_id)
+        key = self._lyrics_key(track)
+        result = self._lyrics.get(key)
+        return result
 
-    def put_lyrics(self, track_id: int, lyrics: list[LyricLine]) -> None:
+    def put_lyrics(self, track: Track, lyrics: list[LyricLine]) -> None:
         """Cache lyrics for a track."""
-        self._lyrics.put(track_id, lyrics)
+        key = self._lyrics_key(track)
+        self._lyrics.put(key, lyrics)
 
-    def get_stream(self, track_id: int) -> str | None:
+    @staticmethod
+    def _stream_key(track: Track) -> str:
+        """Return a cache key derived from the track's URL."""
+        return track.url.strip()
+
+    def get_stream(self, track: Track) -> str | None:
         """Retrieve a cached stream URL for a track."""
-        return self._streams.get(track_id)
+        return self._streams.get(self._stream_key(track))
 
-    def put_stream(self, track_id: int, stream: str) -> None:
+    def put_stream(self, track: Track, stream: str) -> None:
         """Cache a stream URL for a track."""
-        self._streams.put(track_id, stream)
+        self._streams.put(self._stream_key(track), stream)
 
     def clear(self) -> None:
         """Clear all sub-caches."""

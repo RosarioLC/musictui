@@ -1,27 +1,28 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import ClassVar
 
-from textual.app import App, ComposeResult
+from textual.app import App
 from textual.binding import Binding
 
+from catalog.track_cache import TrackCache
+from catalog.ytmusic_source import YTMusicSource
+from model.track import Track
 from playback.music_queue import MusicQueue
 from playback.player import Player
 from playback.vlc_backend import VLCAudioBackend
-from catalog.ytmusic_source import YTMusicSource
-from catalog.track_cache import TrackCache
-from model.track import Track
+from services.catalog_service import CatalogService
+from services.library_service import LibraryService
+from services.playback_service import PlaybackService
 from store.database import Database
 from store.playlist_store import PlaylistStore
+from ui.messages import EventBus
+from ui.screens.fullscreen_screen import FullscreenScreen
 from ui.screens.home_screen import HomeScreen
-from ui.screens.search_screen import SearchScreen
 from ui.screens.library_screen import LibraryScreen
 from ui.screens.lyrics_screen import LyricsScreen
-from ui.screens.fullscreen_screen import FullscreenScreen
-
-if TYPE_CHECKING:
-    pass
+from ui.screens.search_screen import SearchScreen
 
 
 class MusicTUI(App):
@@ -33,7 +34,7 @@ class MusicTUI(App):
 
     CSS_PATH: str = "style.tcss"
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("q", "quit", "Quit", show=True),
         Binding("h", "go_home", "Home", show=True),
         Binding("s", "go_search", "Search", show=True),
@@ -48,17 +49,25 @@ class MusicTUI(App):
         sys.stdout.write("MUSIC_APP_MOUNTED\n")
         sys.stdout.flush()
 
-        # Core services.
-        self._catalog: YTMusicSource = YTMusicSource()
-        self._store: Database = Database("store.db")
-        self._playlists: PlaylistStore = PlaylistStore(self._store)
-        self._track_cache: TrackCache = TrackCache(max_size=50)
-        self._player: Player = Player(
+        # Core infrastructure.
+        self._event_bus = EventBus(self)
+
+        # Services.
+        self._catalog_source = YTMusicSource()
+        self._store = Database("store.db")
+        self._track_cache = TrackCache(max_size=50)
+        self._playlist_store = PlaylistStore(self._store, self._catalog_source)
+
+        self._catalog_service = CatalogService(self._catalog_source, self._track_cache)
+        self._library_service = LibraryService(self._playlist_store)
+
+        self._player = Player(
             backend=VLCAudioBackend(),
             queue=MusicQueue(),
-            stream_resolver=self._resolve_stream,
+            stream_resolver=lambda t: self._catalog_service.get_stream(t),
         )
         self._player.set_textual_app(self)
+        self._playback_service = PlaybackService(self._player, self._event_bus)
 
         # Search state.
         self._last_search_query: str = ""
@@ -66,7 +75,11 @@ class MusicTUI(App):
         self._pending_search_query: str = ""
         self._asset_workers: set[int] = set()
 
-        self.push_screen(HomeScreen(self._catalog, self._player))
+        self.push_screen(
+            HomeScreen(
+                self._catalog_service, self._playback_service, self._library_service
+            )
+        )
 
     def on_unmount(self) -> None:
         """Close the database connection on shutdown."""
@@ -75,17 +88,22 @@ class MusicTUI(App):
 
     def action_go_home(self) -> None:
         """Navigate to the home screen."""
-        self.switch_screen(HomeScreen(self._catalog, self._player))
+        self.switch_screen(
+            HomeScreen(
+                self._catalog_service, self._playback_service, self._library_service
+            )
+        )
 
     def action_go_search(self) -> None:
         """Navigate to the search screen, preserving the last query."""
-        self._player.set_playlist_context(False)
+        self._playback_service.set_playlist_context(False)
         query = self._pending_search_query or self._last_search_query
         self._pending_search_query = ""
         self.switch_screen(
             SearchScreen(
-                catalog=self._catalog,
-                player=self._player,
+                catalog=self._catalog_service,
+                player=self._playback_service,
+                playlists=self._library_service,
                 initial_query=query,
                 initial_tracks=self._last_search_tracks,
                 on_results=self._remember_search,
@@ -94,12 +112,12 @@ class MusicTUI(App):
 
     def action_go_library(self) -> None:
         """Navigate to the library screen."""
-        self._player.set_playlist_context(False)
+        self._playback_service.set_playlist_context(False)
         self.switch_screen(
             LibraryScreen(
-                player=self._player,
-                catalog=self._catalog,
-                playlists=self._playlists,
+                player=self._playback_service,
+                catalog=self._catalog_service,
+                playlists=self._library_service,
             )
         )
 
@@ -110,22 +128,20 @@ class MusicTUI(App):
 
     def _resolve_stream(self, track: Track) -> str:
         """Resolve a playable stream URL for *track*, using the cache."""
-        cached = self._track_cache.get_stream(track.id)
+        cached = self._track_cache.get_stream(track)
         if cached is not None:
             return cached
         stream = self._catalog.get_track_stream_url(track)
         if stream:
-            self._track_cache.put_stream(track.id, stream)
+            self._track_cache.put_stream(track, stream)
         return stream
 
     def preload_track(self, track: Track) -> None:
-        """Preload lyrics and stream URL for *track* in the background.
+        """Preload stream URL for *track* in the background.
 
-        Skips tracks that are already being loaded or already cached.
+        Skips tracks that are already being loaded.
         """
         if track.id in self._asset_workers:
-            return
-        if self._track_cache.get_lyrics(track.id) is not None:
             return
 
         self._asset_workers.add(track.id)
@@ -156,18 +172,8 @@ class MusicTUI(App):
                 self.preload_track(track)
 
     def _load_track_assets(self, track: Track) -> None:
-        """Background worker: resolve stream URL and fetch lyrics."""
+        """Background worker: resolve stream URL only (lyrics loaded on demand)."""
         self._resolve_stream(track)
-        self._track_cache.put_lyrics(track.id, self._catalog.get_lyrics(track))
-
-    def get_lyrics(self, track: Track) -> list:
-        """Fetch lyrics for *track*, using the cache when available."""
-        cached = self._track_cache.get_lyrics(track.id)
-        if cached is not None:
-            return cached
-        lyrics = self._catalog.get_lyrics(track)
-        self._track_cache.put_lyrics(track.id, lyrics)
-        return lyrics
 
     def on_worker_state_changed(self, event: object) -> None:
         """When a track-asset worker finishes, preload the next tracks."""
@@ -205,7 +211,7 @@ class MusicTUI(App):
         if self._player.current_track is None:
             self.notify("Nothing is playing")
             return
-        self.push_screen(LyricsScreen(self._player, self._catalog))
+        self.push_screen(LyricsScreen(self._playback_service, self._catalog_service))
 
     async def action_toggle_fullscreen(self) -> None:
         """Toggle the fullscreen album-art overlay screen."""

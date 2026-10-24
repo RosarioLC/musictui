@@ -1,6 +1,6 @@
-from model.track import Track
-from model.lyric_line import LyricLine
 from catalog.lyrics_parser import LyricsParser
+from model.lyric_line import LyricLine
+from model.track import Track
 
 
 class LyricsProvider:

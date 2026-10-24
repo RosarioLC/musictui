@@ -3,7 +3,6 @@ from textual.widgets import Button, Static
 
 from ui.widgets.volume_control import VolumeControl
 
-
 # Button labels for utility controls.
 _BTN_LYRICS: str = "♫"
 _BTN_FULLSCREEN: str = "⛶"

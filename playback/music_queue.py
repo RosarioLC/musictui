@@ -1,7 +1,8 @@
 import random
-from model.track import Track
+from collections.abc import Iterator
+
 from model.repeat_mode import RepeatMode
-from typing import Iterator
+from model.track import Track
 
 
 class MusicQueue:
@@ -106,7 +107,9 @@ class MusicQueue:
             track: The track to add.
         """
         current = self._current
-        if (current is None or track.id != current.id) and track.id not in self._track_ids:
+        if (
+            current is None or track.id != current.id
+        ) and track.id not in self._track_ids:
             self._tracks.append(track)
             self._track_ids.add(track.id)
 
@@ -118,7 +121,9 @@ class MusicQueue:
     def contains(self, track: Track) -> bool:
         """Check whether *track* is the current or an upcoming track."""
         current = self._current
-        return (current is not None and track.id == current.id) or track.id in self._track_ids
+        return (
+            current is not None and track.id == current.id
+        ) or track.id in self._track_ids
 
     @property
     def current(self) -> Track | None:

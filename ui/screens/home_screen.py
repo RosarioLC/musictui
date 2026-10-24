@@ -1,54 +1,105 @@
+"""Home screen showing recommended tracks and the now-playing bar."""
+
+from __future__ import annotations
+
+from functools import partial
+from typing import ClassVar
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import DataTable, Footer, Input, Label
+from textual.widgets import Footer, Input, Label
 from textual.worker import Worker, WorkerState
-from functools import partial
 
+from catalog.catalog_source import CatalogSource
+from model.track import Track
+from services.library_service import LibraryService
+from services.playback_service import PlaybackService
+from ui.mixins import Likeable, PlaylistActionable
+from ui.widgets.next_track_card import NextTrackCard
 from ui.widgets.now_playing_bar import NowPlayingBar
 from ui.widgets.search_bar import SearchBar
-from ui.widgets.search_result import SearchResults
-from ui.widgets.next_track_card import NextTrackCard
-from ui.widgets.modal import PlaylistPickerScreen
-from model.track import Track
+from ui.widgets.track_list import TrackList
 
 
-class HomeScreen(Screen):
-    """Home screen showing recommended tracks and the now-playing bar."""
+class HomeScreen(Screen, Likeable, PlaylistActionable):
+    """Home screen displaying recommended tracks and the now-playing bar.
 
-    BINDINGS = [
+    On mount, this screen loads recommended tracks from the catalog in a
+    background worker and displays them in a :class:`~ui.widgets.track_list.TrackList`.
+    It supports infinite scrolling (loading more recommendations) and
+    provides keyboard shortcuts for adding tracks to playlists.
+    """
+
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("a", "add_to_playlist", "Add to Playlist"),
     ]
 
-    # Number of tracks to load per page.
     _PAGE_SIZE: int = 12
 
-    def __init__(self, catalog: object, player: object) -> None:
-        """Initialize the home screen.
+    def __init__(
+        self,
+        catalog: CatalogSource,
+        player: PlaybackService,
+        playlists: LibraryService,
+    ) -> None:
+        """Initialize the home screen with its services.
 
         Args:
-            catalog: Music catalog provider.
-            player: Playback controller.
+            catalog: The catalog source used to fetch recommended tracks.
+            player: The playback service for controlling audio playback.
+            playlists: The library service for playlist management.
         """
         super().__init__()
         self._catalog = catalog
         self._player = player
+        self._playlists = playlists
         self._recommended: list[Track] = []
         self._shown_count: int = 0
         self._seen_ids: set[str] = set()
+        Likeable.library_service = playlists
+        PlaylistActionable.library_service = playlists
+        PlaylistActionable.playback_service = player
 
     def compose(self) -> ComposeResult:
-        """Compose the home screen layout."""
+        """Compose the home screen layout.
+
+        Returns:
+            A sequence of widgets: search bar, home title, recommended
+            tracks list, next-track card, footer, and now-playing bar.
+        """
         yield SearchBar()
         yield Label("HOME", id="home-title")
-        yield SearchResults(widget_id="recommended")
+        yield TrackList(
+            widget_id="recommended",
+            like_callback=self._on_toggle_like,
+            track_selected_callback=self._on_track_selected_callback,
+            like_status_callback=self._playlists.is_liked if self._playlists else None,
+        )
         yield NextTrackCard()
         yield Footer()
         yield NowPlayingBar()
 
+    def _on_track_selected_callback(self, row: int) -> None:
+        """Handle a track selection from the recommended tracks list.
+
+        Sets the playback continuation to the remaining tracks after the
+        selected one, then begins playback of the selected track.
+
+        Args:
+            row: The zero-based index of the selected track in
+                :attr:`_recommended`.
+        """
+        if row >= len(self._recommended):
+            return
+        try:
+            self._player.set_continuation(self._recommended[row + 1 :])
+            self._player.play(self._recommended[row])
+        except Exception as exc:  # noqa: BLE001
+            self.notify(str(exc), severity="error")
+
     def on_mount(self) -> None:
-        """Load recommended tracks in the background."""
-        self._player.set_playlist_context(False)
+        """Start loading recommended tracks in a background worker."""
         self.run_worker(
             partial(self._catalog.get_recommended_tracks, self._PAGE_SIZE),
             name="home-recommendations",
@@ -57,33 +108,43 @@ class HomeScreen(Screen):
         )
 
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
-        """Handle completion of the recommendations worker."""
-        # Handle initial recommendations.
-        if event.worker.name == "home-recommendations" and event.state == WorkerState.SUCCESS:
+        """Handle completion of a recommendations worker.
+
+        On success, updates the track list and seen-ID set.  For the
+        initial load, the results replace any existing display; for
+        subsequent loads, they are appended.
+
+        Args:
+            event: The worker state-change event.
+        """
+        if (
+            event.worker.name == "home-recommendations"
+            and event.state == WorkerState.SUCCESS
+        ):
             tracks: list[Track] = event.worker.result or []
-            # Deduplicate against already-seen tracks.
             tracks = [t for t in tracks if t.provider_id not in self._seen_ids]
             if tracks:
                 self._seen_ids.update(t.provider_id for t in tracks if t.provider_id)
                 self._recommended = tracks
-                self.query_one("#recommended", SearchResults).show_results(tracks)
+                self.query_one("#recommended", TrackList).show_results(tracks)
                 self._shown_count += len(tracks)
-        # Handle subsequent recommendations (infinite scroll).
-        elif event.worker.name == "home-recommendations-next" and event.state == WorkerState.SUCCESS:
+        elif (
+            event.worker.name == "home-recommendations-next"
+            and event.state == WorkerState.SUCCESS
+        ):
             tracks: list[Track] = event.worker.result or []
-            # Deduplicate against already-seen tracks.
             tracks = [t for t in tracks if t.provider_id not in self._seen_ids]
             if tracks:
                 self._seen_ids.update(t.provider_id for t in tracks if t.provider_id)
                 self._recommended.extend(tracks)
-                self.query_one("#recommended", SearchResults).append_results(tracks)
+                self.query_one("#recommended", TrackList).append_results(tracks)
                 self._shown_count += len(tracks)
 
     def _load_more_if_needed(self) -> None:
-        """Load more recommendations if we haven't already."""
+        """Load additional recommendations if the user scrolls to the bottom."""
         if self._shown_count == 0:
             return
-        self.query_one("#recommended", SearchResults).show_loading_more()
+        self.query_one("#recommended", TrackList).show_loading_more()
         self.run_worker(
             partial(self._catalog.get_recommended_tracks, self._PAGE_SIZE),
             name="home-recommendations-next",
@@ -91,54 +152,18 @@ class HomeScreen(Screen):
             thread=True,
         )
 
-    def on_search_results_load_more(self, event: SearchResults.LoadMore) -> None:
-        """Handle LoadMore message from the recommended DataTable."""
+    def on_track_list_load_more(self, event: TrackList.LoadMore) -> None:
+        """Handle a load-more request from the track list widget."""
         self._load_more_if_needed()
 
-
-    def on_search_results_track_selected(self, event: SearchResults.TrackSelected) -> None:
-        """Handle a track selection from the results table."""
-        if event.row < len(self._recommended):
-            self._player.set_continuation(self._recommended[event.row + 1:])
-            self._player.play(self._recommended[event.row])
-
     async def on_input_submitted(self, event: Input.Submitted) -> None:
-        """Navigate to the search screen when the user submits a query."""
-        setattr(self.app, "_pending_search_query", event.value.strip())
+        """Handle search input submission by navigating to the search screen.
+
+        Stores the query in the app pending-search state so that the
+        search screen can pick it up on mount.
+
+        Args:
+            event: The input submission event containing the search text.
+        """
+        self.app._pending_search_query = event.value.strip()
         await self.app.run_action("go_search")
-
-    def action_add_to_playlist(self) -> None:
-        """Show the playlist picker for the currently playing track."""
-        current = self._player.current_track
-        if current is None:
-            self.notify("Nothing is playing", severity="warning")
-            return
-        playlists = getattr(self._player._app, "_playlists", None)
-        if playlists is None:
-            self.notify("Playlist store not available", severity="error")
-            return
-        playlists_list = playlists.list()
-        if not playlists_list:
-            self.notify("Create a playlist first (go to Library → N)", severity="warning")
-            return
-        self.app.push_screen(PlaylistPickerScreen(playlists_list))
-
-    def on_mount_playlist_picker(self, message: PlaylistPickerScreen) -> None:
-        """Handle the playlist picker result."""
-        playlist_id = message.result
-        if playlist_id is None:
-            return
-        current = self._player.current_track
-        if current is None:
-            return
-        try:
-            playlists = getattr(self._player._app, "_playlists").list()
-            for p in playlists:
-                if p.id == playlist_id:
-                    p.add_song(current)
-                    self.notify(f'Added to "{p.name}"')
-                    break
-        except ValueError as exc:
-            self.notify(str(exc), severity="error")
-        except Exception as exc:
-            self.notify(str(exc), severity="error")

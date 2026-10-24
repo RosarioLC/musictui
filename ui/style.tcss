@@ -62,9 +62,9 @@ DataTable > .datatable--cursor {
     width: 70%;
     margin: 0;
     height: 3;
-    background: #242424;
     border: round #535353;
     color: #ffffff;
+    background: #242424;
     padding: 0 1;
 }
 
@@ -83,6 +83,16 @@ DataTable > .datatable--cursor {
 
 #search-results {
     column-span: 2;
+    width: 1fr;
+    height: 1fr;
+}
+
+#search-results #track-list-scroll {
+    scrollbar-size: 1 1;
+    scrollbar-color: #666666;
+    scrollbar-color-hover: #666666;
+    scrollbar-color-active: #666666;
+    scrollbar-background: black;
 }
 
 .result-message {
@@ -416,14 +426,174 @@ Screen.player-focused #queue-panel {
 }
 
 
-Label {
+#library-content {
+    layout: horizontal;
+    height: 1fr;
+    column-span: 2;
+}
+
+#playlists {
+    width: 30;
+    min-width: 30;
+    max-width: 30;
+}
+
+#playlist-songs {
+    width: 1fr;
+    height: 1fr;
+}
+
+#playlist-songs #track-list-scroll {
+    scrollbar-size: 1 1;
+    scrollbar-color: #666666;
+    scrollbar-color-hover: #666666;
+    scrollbar-color-active: #666666;
+    scrollbar-background: black;
+}
+
+#recommended #track-list-scroll {
+    scrollbar-size: 1 1;
+    scrollbar-color: #666666;
+    scrollbar-color-hover: #666666;
+    scrollbar-color-active: #666666;
+    scrollbar-background: black;
+}
+
+#playlist-tracks {
+    column-span: 2;
+    width: 1fr;
+    height: 1fr;
+}
+
+#playlist-tracks #track-list-scroll {
+    scrollbar-size: 1 1;
+    scrollbar-color: #666666;
+    scrollbar-color-hover: #666666;
+    scrollbar-color-active: #666666;
+    scrollbar-background: black;
+}
+
+ListView {
+    scrollbar-color: #535353;
+    scrollbar-color-hover: #535353;
+    scrollbar-color-active: #535353;
+    scrollbar-background: #121212;
+}
+
+ListView:focus {
+    scrollbar-color: #737373;
+}
+
+
+#dialog {
+    background: #181818;
+    border: solid #1ed760;
+    width: 60;
+    height: 14;
+    padding: 1 4;
+    layout: vertical;
+    align: center middle;
+}
+
+#title {
+    text-style: bold;
     color: #ffffff;
+    height: 3;
+    content-align: left middle;
 }
 
-Button {
-    text-style: bold;
+#name-input {
+    width: 100%;
+    margin-top: 1;
+    margin-bottom: 1;
+    padding: 0 1;
+    height: 3;
+    color: #ffffff;
+    background: #242424;
+    border: round #535353;
 }
 
-Button {
+#buttons {
+    width: 100%;
+    layout: horizontal;
+}
+
+#buttons Button {
+    width: 50%;
+}
+
+TrackRow {
+    height: 8;
+    width: 100%;
+    layout: horizontal;
+    background: #181818;
+}
+
+TrackRow:hover {
+    background: #282828;
+}
+
+TrackRow .track-art {
+    width: 16;
+    min-width: 16;
+    max-width: 16;
+    height: 8;
+    min-height: 8;
+    max-height: 8;
+    content-align: center middle;
+    padding: 0;
+}
+
+TrackRow .track-title {
+    width: 30;
+    min-width: 20;
+    height: 2;
+    color: #ffffff;
     text-style: bold;
+    padding: 1 1 0 1;
+    overflow: hidden;
+}
+
+TrackRow .track-artist {
+    width: 20;
+    min-width: 15;
+    height: 2;
+    color: #b3b3b3;
+    padding: 1 1 0 1;
+    overflow: hidden;
+}
+
+TrackRow .track-album {
+    width: 25;
+    min-width: 15;
+    height: 2;
+    color: #b3b3b3;
+    padding: 1 1 0 1;
+    overflow: hidden;
+}
+
+TrackRow .track-duration {
+    width: 10;
+    min-width: 8;
+    height: 2;
+    color: #b3b3b3;
+    padding: 1 1 0 1;
+}
+
+.heart-button {
+    width: 6;
+    min-width: 6;
+    max-width: 6;
+    height: 8;
+    min-height: 8;
+    max-height: 8;
+    background: transparent;
+    color: #b3b3b3;
+    padding: 0;
+    content-align: center middle;
+}
+
+.heart-button.heart-liked {
+    background: transparent;
+    color: #1ed760;
 }

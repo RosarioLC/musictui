@@ -1,7 +1,9 @@
+from typing import ClassVar
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Label, Footer
+from textual.widgets import Footer, Label
 
 from model.track import Track
 from ui.widgets.album_art import AlbumArt
@@ -11,7 +13,7 @@ from ui.widgets.now_playing_bar import NowPlayingBar
 class FullscreenScreen(Screen):
     """Overlay screen displaying a large album-art rendering."""
 
-    BINDINGS = [Binding("escape", "close", "Close")]
+    BINDINGS: ClassVar[list[Binding]] = [Binding("escape", "close", "Close")]
 
     def __init__(self, track: Track, art_cols: int | None = None) -> None:
         """Initialize the fullscreen screen.

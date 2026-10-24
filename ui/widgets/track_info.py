@@ -1,6 +1,5 @@
-from textual.widgets import Static
 from textual.app import ComposeResult
-from textual.css.query import NoMatches
+from textual.widgets import Static
 
 from model.track import Track
 from ui.widgets.album_art import AlbumArt
@@ -20,7 +19,12 @@ class TrackMetadata(Static):
 
 
 class TrackInfo(Static):
-    """Track info widget showing album art, title, and artist."""
+    """Track info widget showing album art, title, and artist.
+
+    Displays the current track's album art (optional), title, and artist
+    name.  Album art is rendered as ANSI half-block colour text via the
+    :class:`~ui.widgets.album_art.AlbumArt` widget.
+    """
 
     def __init__(self, show_art: bool = True) -> None:
         """Initialize the track info widget.
@@ -30,30 +34,29 @@ class TrackInfo(Static):
         """
         super().__init__(id="track-info")
         self._show_art: bool = show_art
-        # Cached DOM references.
         self._album_art: AlbumArt | None = None
         self._title: Static | None = None
         self._artist: Static | None = None
 
     def compose(self) -> ComposeResult:
-        """Compose the album art and metadata."""
+        """Compose the album art and metadata widgets."""
         if self._show_art:
             yield AlbumArt(art_cols=20, id="album-art")
         yield TrackMetadata()
 
     def on_mount(self) -> None:
-        """Cache references to child widgets."""
+        """Cache references to child widgets for fast access."""
         if self._show_art:
             try:
                 self._album_art = self.query_one("#album-art", AlbumArt)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 self._album_art = None
         else:
             self._album_art = None
         try:
             self._title = self.query_one("#track-title", Static)
             self._artist = self.query_one("#track-artist", Static)
-        except Exception:
+        except Exception:  # noqa: BLE001
             self._title = None
             self._artist = None
 

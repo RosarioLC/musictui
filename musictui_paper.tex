@@ -1,0 +1,1940 @@
+% =============================================================================
+% MusicTUI: A Terminal-Based Music Player with Synced Lyrics and ANSI Art
+% -----------------------------------------------------------------------------
+% Restyled edition.  Content, structure, figure placeholders, code listings,
+% project macros and bibliography are unchanged; only the presentation layer
+% (preamble, environments, spacing, colour) has been redesigned.
+%
+% Build:  pdflatex musictui_paper.tex   (run twice for references)
+% Needs only standard TeX Live packages.  Optional packages (fontawesome5,
+% inconsolata/zi4, microtype) are detected automatically and replaced with
+% safe fall-backs when absent.
+% =============================================================================
+\documentclass[a4paper,11pt,twoside]{article}
+
+%% ---------------------------------------------------------------------------
+%% 1.  Encoding, fonts, microtypography
+%% ---------------------------------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage[sc]{mathpazo}                 % Palatino text + math (serif body)
+\usepackage[scaled=0.92]{helvet}          % Helvetica for headings/captions
+\IfFileExists{zi4.sty}{%
+  \usepackage[scaled=0.93]{zi4}%          % Inconsolata (preferred monospace)
+}{\IfFileExists{inconsolata.sty}{%
+  \usepackage[scaled=0.93]{inconsolata}%
+}{%
+  % universally available fall-back: Courier (URW) scaled down to Palatino's colour
+  \DeclareFontFamily{T1}{pcs}{\hyphenchar\font=-1 }%
+  \DeclareFontShape{T1}{pcs}{m}{n}{<->s*[0.86]pcrr8t}{}%
+  \DeclareFontShape{T1}{pcs}{m}{sl}{<->s*[0.86]pcrro8t}{}%
+  \DeclareFontShape{T1}{pcs}{m}{it}{<->ssub*pcs/m/sl}{}%
+  \DeclareFontShape{T1}{pcs}{b}{n}{<->s*[0.86]pcrb8t}{}%
+  \DeclareFontShape{T1}{pcs}{b}{sl}{<->s*[0.86]pcrbo8t}{}%
+  \DeclareFontShape{T1}{pcs}{b}{it}{<->ssub*pcs/b/sl}{}%
+  \DeclareFontShape{T1}{pcs}{bx}{n}{<->ssub*pcs/b/n}{}%
+  \DeclareFontShape{T1}{pcs}{bx}{sl}{<->ssub*pcs/b/sl}{}%
+  \DeclareFontShape{T1}{pcs}{bx}{it}{<->ssub*pcs/b/sl}{}%
+  \renewcommand{\ttdefault}{pcs}%
+}}
+\IfFileExists{microtype.sty}{%
+  \usepackage[protrusion=true,expansion=true,final]{microtype}%
+}{}
+
+%% ---------------------------------------------------------------------------
+%% 2.  Colour palette  (deep blue + teal + warm amber, plus greys)
+%% ---------------------------------------------------------------------------
+\usepackage[table]{xcolor}
+\definecolor{accent}{HTML}{14507A}        % primary: deep blue
+\definecolor{accentb}{HTML}{0E7C7B}       % secondary: teal
+\definecolor{warm}{HTML}{A8611A}          % tertiary: muted amber
+\definecolor{ink}{HTML}{1B2430}           % near-black for headings
+\definecolor{codebg}{HTML}{F5F7F9}        % code block background
+\definecolor{codeframe}{HTML}{D3DAE1}     % code block frame / rules
+\definecolor{codegray}{HTML}{6A737D}      % comments, line numbers
+
+%% ---------------------------------------------------------------------------
+%% 3.  Core packages
+%% ---------------------------------------------------------------------------
+\usepackage{graphicx}
+\usepackage[a4paper,left=1.15in,right=1.15in,top=1in,bottom=1in,
+            headheight=15pt,headsep=0.3in,footskip=0.4in]{geometry}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{etoolbox}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\usepackage[ruled]{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{listingsutf8}
+\usepackage[skins,breakable]{tcolorbox}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+
+%% Icons for the call-out boxes: Font Awesome when installed, Dingbats otherwise
+\IfFileExists{fontawesome5.sty}{%
+  \usepackage{fontawesome5}%
+  \newcommand{\iconDesign}{\faLightbulb}%
+  \newcommand{\iconArch}{\faSitemap}%
+  \newcommand{\iconTest}{\faFlask}%
+}{%
+  \usepackage{pifont}%
+  \newcommand{\iconDesign}{\ding{72}}%
+  \newcommand{\iconArch}{\ding{117}}%
+  \newcommand{\iconTest}{\ding{51}}%
+}
+
+\usepackage{hyperref}                     % keep near the end
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accent, citecolor=accentb, urlcolor=accent,
+  bookmarksnumbered=true, pdfpagemode=UseOutlines,
+  pdftitle={MusicTUI: A Terminal-Based Music Player with Synced Lyrics, ANSI Half-Block Colour Art, and Event-Driven Architecture},
+  pdfauthor={MusicTUI Project},
+  pdfkeywords={terminal user interface, music player, Python, Textual, synced lyrics, ANSI art, event-driven architecture, dependency injection, SQLite, VLC}
+}
+
+%% ---------------------------------------------------------------------------
+%% 4.  Page layout, spacing, paragraphs
+%% ---------------------------------------------------------------------------
+\onehalfspacing
+\setlength{\parskip}{6pt plus 1.5pt minus 1pt}
+\setlength{\parindent}{0pt}
+\raggedbottom
+\setlength{\emergencystretch}{2em}
+\widowpenalty=10000
+\clubpenalty=10000
+\setlength{\floatsep}{14pt plus 3pt minus 3pt}
+\setlength{\textfloatsep}{16pt plus 3pt minus 4pt}
+\setlength{\intextsep}{14pt plus 3pt minus 3pt}
+
+%% ---------------------------------------------------------------------------
+%% 5.  Section headings (titlesec)
+%% ---------------------------------------------------------------------------
+\newcommand{\secbar}{\textcolor{accent}{\rule[-0.32em]{4pt}{1.5em}}\hspace{0.6em}}
+
+\titleformat{\section}[block]
+  {\normalfont\sffamily\Large\bfseries\color{ink}}
+  {\secbar\textcolor{accent}{\thesection}}{0.6em}{}
+  [\vspace{-0.15em}{\color{accent!25}\titlerule[0.6pt]}]
+\titleformat{name=\section,numberless}[block]
+  {\normalfont\sffamily\Large\bfseries\color{ink}}
+  {}{0pt}{\secbar}
+  [\vspace{-0.15em}{\color{accent!25}\titlerule[0.6pt]}]
+\titlespacing*{\section}{0pt}{3.4ex plus 1ex minus .4ex}{1.8ex plus .3ex}
+
+\titleformat{\subsection}[block]
+  {\normalfont\sffamily\large\bfseries\color{ink}}
+  {\textcolor{accentb}{\thesubsection}}{0.55em}{}
+\titlespacing*{\subsection}{0pt}{2.8ex plus .8ex minus .3ex}{1.1ex plus .2ex}
+
+\titleformat{\subsubsection}[block]
+  {\normalfont\sffamily\normalsize\bfseries\color{ink!85}}
+  {\textcolor{accentb!85!black}{\thesubsubsection}}{0.5em}{}
+\titlespacing*{\subsubsection}{0pt}{2.2ex plus .6ex minus .2ex}{0.8ex plus .2ex}
+
+\titleformat{\paragraph}[runin]
+  {\normalfont\sffamily\normalsize\bfseries\color{accent}}
+  {}{0pt}{}
+\titlespacing*{\paragraph}{0pt}{1.6ex plus .5ex minus .2ex}{0.8em}
+
+%% ---------------------------------------------------------------------------
+%% 6.  Running headers / footers
+%%     odd pages : current section (left)  | page number (right)
+%%     even pages: page number (left)      | short title (right)
+%% ---------------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\enspace #1}{\thesection\enspace #1}}
+\fancyhead[LO]{\sffamily\small\color{codegray}\leftmark}
+\fancyhead[RO]{\sffamily\small\bfseries\color{accent}\thepage}
+\fancyhead[LE]{\sffamily\small\bfseries\color{accent}\thepage}
+\fancyhead[RE]{\sffamily\small\color{codegray}MusicTUI}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{{\color{accent!35}\hrule width\headwidth height\headrulewidth}}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyfoot[C]{\sffamily\small\color{codegray}\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+}
+
+%% ---------------------------------------------------------------------------
+%% 7.  Captions
+%% ---------------------------------------------------------------------------
+\captionsetup{
+  font=small, labelfont={sf,bf,color=accent}, textfont={},
+  labelsep=period, justification=justified, singlelinecheck=true,
+  margin=0.4em
+}
+\captionsetup[table]{position=above, skip=7pt}
+\captionsetup[figure]{position=below, skip=9pt}
+\captionsetup[algorithm]{position=above}
+\captionsetup[ruled]{font=small, labelfont={sf,bf,color=accent}, labelsep=period,
+  singlelinecheck=false, justification=raggedright}
+\captionsetup[lstlisting]{
+  font=small, labelfont={sf,bf,color=accent}, labelsep=period,
+  justification=raggedright, singlelinecheck=false, skip=4pt, margin=0pt
+}
+
+%% ---------------------------------------------------------------------------
+%% 8.  Lists
+%% ---------------------------------------------------------------------------
+\setlist{itemsep=0.2em plus 0.05em, parsep=0pt, partopsep=0pt,
+         topsep=0.35em plus 0.15em minus 0.1em}
+\setlist[itemize,1]{leftmargin=1.7em, labelsep=0.55em,
+  label=\raisebox{0.18ex}{\textcolor{accent}{\scriptsize$\blacksquare$}}}
+\setlist[itemize,2]{leftmargin=1.5em, labelsep=0.5em,
+  label=\textcolor{accentb}{\textbf{--}}}
+\setlist[itemize,3]{leftmargin=1.4em, label=\textcolor{codegray}{$\circ$}}
+\setlist[enumerate,1]{leftmargin=2em, labelsep=0.55em,
+  label=\textcolor{accent}{\sffamily\bfseries\arabic*.}}
+\setlist[enumerate,2]{leftmargin=2em, label=\textcolor{accentb}{\alph*)}}
+
+%% ---------------------------------------------------------------------------
+%% 9.  Tables  (booktabs only: no vertical rules, no \hline)
+%% ---------------------------------------------------------------------------
+\setlength{\heavyrulewidth}{1.1pt}
+\setlength{\lightrulewidth}{0.5pt}
+\setlength{\aboverulesep}{0.45ex}
+\setlength{\belowrulesep}{0.65ex}
+\AtBeginEnvironment{table}{%
+  \small\singlespacing
+  \renewcommand{\arraystretch}{1.3}%
+  \setlength{\tabcolsep}{8pt}%
+  \rowcolors{2}{white}{accent!5}%
+}
+
+%% ---------------------------------------------------------------------------
+%% 10.  Algorithms
+%% ---------------------------------------------------------------------------
+\floatname{algorithm}{Algorithm}
+\AtBeginEnvironment{algorithmic}{\small\singlespacing}
+\algrenewcommand{\alglinenumber}[1]{\sffamily\scriptsize\color{codegray}#1:}
+\algrenewcommand{\algorithmicfunction}{\textcolor{accent}{\textbf{function}}}
+\algrenewcommand{\algorithmicif}{\textcolor{accent}{\textbf{if}}}
+\algrenewcommand{\algorithmicthen}{\textcolor{accent}{\textbf{then}}}
+\algrenewcommand{\algorithmicend}{\textcolor{accent}{\textbf{end}}}
+\algrenewcommand{\algorithmicreturn}{\textcolor{accent}{\textbf{return}}}
+
+%% ---------------------------------------------------------------------------
+%% 11.  Code listings  (listings + tcolorbox, no shell-escape needed)
+%% ---------------------------------------------------------------------------
+\newcommand{\codefont}{\ttfamily\footnotesize\renewcommand{\baselinestretch}{1.12}\selectfont}
+
+\lstdefinelanguage{Python}{
+  morekeywords={and,as,assert,async,await,break,case,class,continue,def,del,
+    elif,else,except,finally,for,from,global,if,import,in,is,lambda,match,
+    None,nonlocal,not,or,pass,raise,return,True,False,try,while,with,yield},
+  morekeywords=[2]{int,str,bool,float,dict,list,set,tuple,object,bytes,Any,
+    Self,Enum,Message,print,len,isinstance,hasattr,getattr,setattr,round,max,
+    min,zip,range,super,type,hash,property,staticmethod,classmethod,
+    Exception,ValueError,ImportError,NotImplemented},
+  morekeywords=[3]{self,cls},
+  sensitive=true,
+  morecomment=[l]\#,
+  morestring=[b]",
+  morestring=[b]',
+  moredelim=[l][\color{accentb}]{@},
+}
+\lstdefinelanguage{Console}{
+  morecomment=[l]\#,
+  literate={\$\ }{{\textcolor{accentb}{\$\ }}}2,
+}
+\lstset{
+  basicstyle=\codefont,
+  keywordstyle=\color{accent}\bfseries,
+  keywordstyle=[2]\color{accentb},
+  keywordstyle=[3]\color{codegray},
+  commentstyle=\color{codegray},
+  stringstyle=\color{warm},
+  identifierstyle=\color{ink},
+  showstringspaces=false,
+  breaklines=true, breakatwhitespace=false,
+  postbreak=\mbox{\textcolor{accentb}{\tiny$\hookrightarrow$}\space},
+  breakindent=0pt, breakautoindent=true,
+  tabsize=4, columns=fullflexible, keepspaces=true,
+  captionpos=t, aboveskip=0pt, belowskip=0pt,
+  frame=l, framerule=0.5pt, framesep=5pt, rulecolor=\color{codeframe},
+  numbers=left, stepnumber=1, numbersep=10pt,
+  numberstyle=\tiny\ttfamily\color{codegray},
+  xleftmargin=22pt, xrightmargin=0pt,
+}
+\lstdefinestyle{console}{language=Console, numbers=none, frame=none,
+  xleftmargin=0pt, breaklines=true}
+
+%% Shared look of code blocks (also used for the two `verbatim` trees)
+\tcbset{codebox/.style={
+  enhanced, breakable, colback=codebg, colframe=codeframe, boxrule=0.5pt,
+  arc=3pt, sharp corners=west, borderline west={2.6pt}{0pt}{accent},
+  left=5pt, right=6pt, top=5pt, bottom=5pt,
+  before skip=0.7em plus 2pt, after skip=1.0em plus 2pt,
+  pad at break*=2mm, toprule at break=0pt, bottomrule at break=0pt,
+}}
+\BeforeBeginEnvironment{lstlisting}{\begin{tcolorbox}[codebox]}
+\AfterEndEnvironment{lstlisting}{\end{tcolorbox}}
+
+\BeforeBeginEnvironment{verbatim}{\begin{tcolorbox}[codebox]}
+\AfterEndEnvironment{verbatim}{\end{tcolorbox}}
+\AtBeginEnvironment{verbatim}{\codefont\parskip=0pt\relax}
+
+%% Box-drawing glyphs used by the two directory/wiring trees (drawn with rules
+%% so they connect perfectly in any monospace font and need no special font).
+\makeatletter
+\newdimen\bd@w \newdimen\bd@y \newdimen\bd@t
+\newcommand{\bd@setup}{%
+  \leavevmode
+  \bd@w=\fontcharwd\font`0\relax
+  \bd@y=0.5\fontdimen5\font\relax
+  \bd@t=0.45pt\relax
+}
+\newcommand{\bd@vfull}{\vrule height\ht\strutbox depth\dp\strutbox width\bd@t}
+\newcommand{\bd@place}[2]{\rlap{\kern#1\relax#2}}
+\newcommand{\bdVert}{\bd@setup\bd@place{\dimexpr.5\bd@w-.5\bd@t\relax}{\bd@vfull}\kern\bd@w}
+\newcommand{\bdHorz}{\bd@setup\bd@place{0pt}{\raise\bd@y\hbox{\vrule height\bd@t width\bd@w}}\kern\bd@w}
+\newcommand{\bdTee}{\bd@setup
+  \bd@place{\dimexpr.5\bd@w-.5\bd@t\relax}{\bd@vfull}%
+  \bd@place{.5\bd@w}{\raise\bd@y\hbox{\vrule height\bd@t width.5\bd@w}}\kern\bd@w}
+\newcommand{\bdElbow}{\bd@setup
+  \bd@place{\dimexpr.5\bd@w-.5\bd@t\relax}{\raise\bd@y\hbox{\vrule height\dimexpr\ht\strutbox-\bd@y\relax depth0pt width\bd@t}}%
+  \bd@place{.5\bd@w}{\raise\bd@y\hbox{\vrule height\bd@t width.5\bd@w}}\kern\bd@w}
+\newcommand{\bdTopRight}{\bd@setup
+  \bd@place{0pt}{\raise\bd@y\hbox{\vrule height\bd@t width.5\bd@w}}%
+  \bd@place{\dimexpr.5\bd@w-.5\bd@t\relax}{\lower\dp\strutbox\hbox{\vrule height\dimexpr\dp\strutbox+\bd@y\relax depth0pt width\bd@t}}\kern\bd@w}
+\newcommand{\bdBotRight}{\bd@setup
+  \bd@place{0pt}{\raise\bd@y\hbox{\vrule height\bd@t width.5\bd@w}}%
+  \bd@place{\dimexpr.5\bd@w-.5\bd@t\relax}{\raise\bd@y\hbox{\vrule height\dimexpr\ht\strutbox-\bd@y\relax depth0pt width\bd@t}}\kern\bd@w}
+\makeatother
+\DeclareUnicodeCharacter{2502}{\bdVert}
+\DeclareUnicodeCharacter{2500}{\bdHorz}
+\DeclareUnicodeCharacter{251C}{\bdTee}
+\DeclareUnicodeCharacter{2514}{\bdElbow}
+\DeclareUnicodeCharacter{2510}{\bdTopRight}
+\DeclareUnicodeCharacter{2518}{\bdBotRight}
+
+%% ---------------------------------------------------------------------------
+%% 12.  Call-out boxes
+%% ---------------------------------------------------------------------------
+\tcbset{callout/.style={
+  enhanced jigsaw, breakable, arc=3pt, boxrule=0.6pt,
+  colframe=#1, colback=#1!5!white, colbacktitle=#1, coltitle=white,
+  fonttitle=\sffamily\bfseries\small, toptitle=2.2pt, bottomtitle=2.2pt,
+  left=9pt, right=9pt, top=6pt, bottom=6pt,
+  before skip=0.9em plus 2pt, after skip=1.1em plus 2pt,
+  drop fuzzy shadow=black!18,
+  before upper={\raggedright\sloppy\setstretch{1.12}\setlength{\parskip}{4pt}\vspace*{-\parskip}},
+}}
+\newtcolorbox{designbox}{callout=accent,
+  title={\iconDesign\hspace{0.55em}Design Decision}}
+\newtcolorbox{archbox}{callout=accentb,
+  title={\iconArch\hspace{0.55em}Architecture Note}}
+\newtcolorbox{testbox}{callout=warm,
+  title={\iconTest\hspace{0.55em}Testing Note}}
+
+%% ---------------------------------------------------------------------------
+%% 13.  Figure placeholders  (\fbox + \parbox kept; restyled inside figures)
+%% ---------------------------------------------------------------------------
+\newcommand{\figfbox}[1]{%
+  \tcbox[enhanced, nobeforeafter, colback=accent!4, colframe=accent!45,
+    boxrule=0pt, arc=3pt, boxsep=6pt, left=2pt, right=2pt, top=2pt, bottom=2pt,
+    fontupper=\color{black!70},
+    frame code={\path[draw=accent!50, dash pattern=on 4pt off 3pt,
+      line width=0.7pt, rounded corners=3pt]
+      (frame.south west) rectangle (frame.north east);}]{#1}}
+\AtBeginEnvironment{figure}{\let\fbox\figfbox\singlespacing}
+
+%% ---------------------------------------------------------------------------
+%% 14.  Abstract + keywords
+%% ---------------------------------------------------------------------------
+\renewtcolorbox{abstract}{
+  enhanced, breakable, colback=accent!5, colframe=accent!5, boxrule=0pt,
+  arc=2pt, borderline west={3pt}{0pt}{accent},
+  left=11pt, right=11pt, top=8pt, bottom=8pt,
+  before skip=1.4em, after skip=0.6em,
+  before upper={\singlespacing\small\setlength{\parskip}{3pt}%
+    \noindent{\sffamily\bfseries\color{accent}\textls[80]{ABSTRACT}}\par\vspace{0.3em}},
+}
+\providecommand{\textls}[2][]{#2}   % letter-spacing fall-back when microtype is absent
+\newcommand{\keywords}[1]{%
+  \par\vspace{0.2em}\noindent
+  {\singlespacing\small
+   \textcolor{accent}{\sffamily\bfseries Keywords}\hspace{0.8em}%
+   \textcolor{black!80}{#1}\par}%
+  \vspace{0.2em}}
+
+%% ---------------------------------------------------------------------------
+%% 15.  Title block
+%% ---------------------------------------------------------------------------
+\makeatletter
+\renewcommand{\maketitle}{%
+  \begingroup
+  \thispagestyle{plain}%
+  \singlespacing
+  \par\noindent{\color{accent}\rule{\linewidth}{2.6pt}}\par
+  \vspace{1.3em}%
+  {\raggedright\sffamily\bfseries\fontsize{15}{20}\selectfont\color{accent!85!black}\@title\par}%
+  \vspace{0.9em}%
+  {\color{accentb}\rule{2.6cm}{1.5pt}}\par
+  \vspace{0.9em}%
+  {\raggedright\sffamily\large\color{ink}\@author\par}%
+  \vspace{0.5em}%
+  {\raggedright\sffamily\small\color{codegray}\@date\par}%
+  \vspace{0.8em}%
+  \noindent{\color{accent!30}\rule{\linewidth}{0.5pt}}\par
+  \endgroup
+}
+\makeatother
+
+%% ---------------------------------------------------------------------------
+%% 16.  Bibliography
+%% ---------------------------------------------------------------------------
+\makeatletter
+\renewcommand{\@biblabel}[1]{\textcolor{accent}{\sffamily\bfseries[#1]}}
+\makeatother
+\AtBeginEnvironment{thebibliography}{\small\singlespacing\setlength{\itemsep}{3pt plus 1pt}}
+\apptocmd{\thebibliography}{\markboth{References}{References}}{}{}
+
+%% ---------------------------------------------------------------------------
+%% 17.  Project-specific macros (UNCHANGED from the original source)
+%% ---------------------------------------------------------------------------
+\newcommand{\py}{\texttt{Python}}
+\newcommand{\textual}{\texttt{Textual}}
+\newcommand{\vlc}{\texttt{VLC}}
+\newcommand{\sqlite}{\texttt{SQLite}}
+\newcommand{\lrc}{\texttt{LRC}}
+\newcommand{\ansi}{\texttt{ANSI}}
+\newcommand{\ytmusic}{\texttt{ytmusicapi}}
+\newcommand{\ytdlp}{\texttt{yt-dlp}}
+\newcommand{\pil}{\texttt{PIL}}
+\newcommand{\tui}{\texttt{TUI}}
+\newcommand{\musictui}{\texttt{MusicTUI}}
+\newcommand{\eventbus}{\texttt{EventBus}}
+\newcommand{\protocol}{\texttt{Protocol}}
+\newcommand{\track}{\texttt{Track}}
+\newcommand{\lyric}{\texttt{LyricLine}}
+\newcommand{\playlist}{\texttt{Playlist}}
+\newcommand{\playstate}{\texttt{PlayState}}
+\newcommand{\repeatmode}{\texttt{RepeatMode}}
+\newcommand{\audiobackend}{\texttt{AudioBackend}}
+\newcommand{\catalogsource}{\texttt{CatalogSource}}
+\newcommand{\trackcache}{\texttt{TrackCache}}
+\newcommand{\musicqueue}{\texttt{MusicQueue}}
+\newcommand{\player}{\texttt{Player}}
+\newcommand{\catalogservice}{\texttt{CatalogService}}
+\newcommand{\playbackservice}{\texttt{PlaybackService}}
+\newcommand{\libraryservice}{\texttt{LibraryService}}
+\newcommand{\playliststore}{\texttt{PlaylistStore}}
+\newcommand{\likedsongstore}{\texttt{LikedSongStore}}
+\newcommand{\downscaler}{\texttt{downscaler}}
+\newcommand{\lyricsparser}{\texttt{LyricsParser}}
+\newcommand{\lyricsprovider}{\texttt{LyricsProvider}}
+\newcommand{\streamresolver}{\texttt{StreamResolver}}
+\newcommand{\ytmusicsource}{\texttt{YTMusicSource}}
+\newcommand{\vlcaudiobackend}{\texttt{VLCAudioBackend}}
+\newcommand{\nowplayingbar}{\texttt{NowPlayingBar}}
+\newcommand{\lyricspanel}{\texttt{LyricsPanel}}
+\newcommand{\albumart}{\texttt{AlbumArt}}
+\newcommand{\tracklist}{\texttt{TrackList}}
+\newcommand{\trackprogress}{\texttt{TrackProgress}}
+\newcommand{\volumecontrol}{\texttt{VolumeControl}}
+\newcommand{\playercontrols}{\texttt{PlayerControls}}
+\newcommand{\sidebar}{\texttt{Sidebar}}
+\newcommand{\searchbar}{\texttt{SearchBar}}
+\newcommand{\queuepanel}{\texttt{QueuePanel}}
+\newcommand{\nexttrackcard}{\texttt{NextTrackCard}}
+\newcommand{\actionhints}{\texttt{ActionHints}}
+\newcommand{\playbackcenter}{\texttt{PlaybackCenter}}
+\newcommand{\playerutilities}{\texttt{PlayerUtilities}}
+\newcommand{\progressrow}{\texttt{ProgressRow}}
+\newcommand{\trackinfo}{\texttt{TrackInfo}}
+\newcommand{\slider}{\texttt{Slider}}
+\newcommand{\searchinput}{\texttt{SearchInput}}
+\newcommand{\searchresult}{\texttt{SearchResults}}
+\newcommand{\navitem}{\texttt{NavItem}}
+\newcommand{\homesc}{\texttt{HomeScreen}}
+\newcommand{\searchsc}{\texttt{SearchScreen}}
+\newcommand{\librarysc}{\texttt{LibraryScreen}}
+\newcommand{\playlistsc}{\texttt{PlaylistScreen}}
+\newcommand{\fullscreensc}{\texttt{FullscreenScreen}}
+\newcommand{\lyricssc}{\texttt{LyricsScreen}}
+
+%% The macros above are kept verbatim.  As control words they swallow the space
+%% that follows them ("\py 3.12" -> "Python3.12"), so each is wrapped with
+%% \xspace *after* its original definition (definitions themselves untouched).
+\usepackage{xspace}
+\xspaceaddexceptions{(}
+\newcommand{\xspacewrap}[1]{%
+  \csletcs{orig@#1}{#1}%
+  \csdef{#1}{\csuse{orig@#1}\xspace}}
+\forcsvlist{\xspacewrap}{py,textual,vlc,sqlite,lrc,ansi,ytmusic,ytdlp,pil,tui,musictui,eventbus,protocol,track,lyric,playlist,playstate,repeatmode,audiobackend,catalogsource,trackcache,musicqueue,player,catalogservice,playbackservice,libraryservice,playliststore,likedsongstore,downscaler,lyricsparser,lyricsprovider,streamresolver,ytmusicsource,vlcaudiobackend,nowplayingbar,lyricspanel,albumart,tracklist,trackprogress,volumecontrol,playercontrols,sidebar,searchbar,queuepanel,nexttrackcard,actionhints,playbackcenter,playerutilities,progressrow,trackinfo,slider,searchinput,searchresult,navitem,homesc,searchsc,librarysc,playlistsc,fullscreensc,lyricssc}
+
+%% Macros that the original text uses but never defined (added so it compiles)
+\DeclareRobustCommand{\method}[1]{\texttt{\def\_{\textunderscore\allowbreak}#1}}
+\newcommand{\property}[1]{\texttt{#1}}
+\newcommand{\pyvlc}{\texttt{python-vlc}\xspace}
+\newcommand{\numpy}{\texttt{NumPy}\xspace}
+\newcommand{\ytmusicapi}{\texttt{ytmusicapi}\xspace}
+
+%% ---------------------------------------------------------------------------
+%% 18.  Title metadata
+%% ---------------------------------------------------------------------------
+\title{\textbf{\musictui: A Terminal-Based Music Player with Synced Lyrics,\\
+ANSI Half-Block Colour Art, and Event-Driven Architecture}}
+\author{\textbf{MusicTUI Project}\\[3pt]
+  {\small Open-source software project}\\[1pt]
+  {\small\href{https://github.com/username/musictui}{\texttt{github.com/username/musictui}}}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+    This paper presents \musictui, a terminal-based music player built with
+    \py 3.12+ and the \textual framework. The application streams music from
+    YouTube Music, manages playlists and liked songs, displays synchronized
+    lyrics, and renders album artwork as \ansi half-block colour text within
+    a responsive terminal user interface. The system employs a clean layered
+    architecture comprising presentation, service, domain, and storage layers,
+    with \protocol-based dependency injection enabling extensibility and
+    testability. An event-driven communication model using a central
+    \eventbus decouples the playback engine from UI widgets, eliminating
+    polling and reducing coupling. Domain models such as \track, \playstate,
+    and \lyric are implemented as immutable frozen dataclasses with slot
+    optimization for memory efficiency. The application leverages \pyvlc for
+    audio playback, \sqlite for persistent storage with schema migration,
+    \pil and \numpy for image downscaling to \ansi half-block colour art,
+    and a triple-cached LRU cache for tracks, lyrics, and stream URLs.
+    Synchronized lyrics are fetched via a multi-tier fallback system
+    (\ytmusic \(\rightarrow\) lrclib \(\rightarrow\) syncedlyrics
+    \(\rightarrow\) linear distribution). The paper documents the complete
+    architecture, design decisions, implementation details, testing
+    methodology, and future work for this open-source project.
+\end{abstract}
+
+\keywords{terminal user interface, music player, Python, Textual framework, synchronous lyrics, ANSI art, event-driven architecture, dependency injection, SQLite, VLC media library}
+
+\section{Introduction}
+
+Terminal-based applications have experienced a renaissance in recent years,
+driven by developer familiarity with command-line environments, the ubiquity
+of SSH-based remote workflows, and the growing capability of modern terminal
+emulators to render rich colour graphics. Within this landscape, music players
+have traditionally occupied a niche dominated by minimal, text-oriented tools
+such as cmus, ncmpcpp, and mpc. While these tools are powerful, they often
+lack the visual polish and interactive features that users expect from modern
+media consumption software.
+
+The \musictui project addresses this gap by delivering a feature-rich music
+player that operates entirely within the terminal yet provides a visual
+experience comparable to desktop applications. Built on the \textual framework
+\cite{textual}, which provides a reactive \tui component model with CSS-like
+styling, \musictui renders album artwork as full-colour \ansi half-block
+characters, displays synchronized lyrics with auto-highlighting, and offers a
+complete playlist management system -- all within a responsive, keyboard-driven
+interface.
+
+The primary contributions of this project are:
+
+\begin{enumerate}
+    \item A \protocol-based layered architecture that cleanly separates
+          concerns across presentation, service, domain, and storage layers.
+    \item An event-driven communication model using a central \eventbus that
+          decouples the playback engine from UI components.
+    \item A novel \ansi half-block colour image rendering pipeline using
+          \pil and \numpy that converts album artwork into terminal-compatible
+          colour art.
+    \item A multi-tier lyrics fetching system with three fallback layers
+          ensuring maximum coverage for synced lyrics.
+    \item An immutable domain model using \py's frozen dataclasses with
+          slot optimization for thread safety and memory efficiency.
+    \item A comprehensive test suite covering all layers of the application
+          with in-memory mocks and \sqlite databases.
+\end{enumerate}
+
+The remainder of this paper is organized as follows. Section~2 describes the
+system architecture and design philosophy. Section~3 details the domain models.
+Section~4 covers the playback subsystem. Section~5 discusses the catalog
+integration with YouTube Music. Section~6 presents the UI architecture.
+Section~7 documents the storage layer. Section~8 describes the testing
+strategy. Section~9 covers installation and usage. Section~10 outlines future
+work. Section~11 concludes.
+
+\section{System Architecture}
+
+\musictui employs a four-layer architecture that enforces unidirectional data
+flow and dependency inversion. Figure~\ref{fig:architecture} illustrates the
+overall layered structure.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        layer/.style={
+            draw=blue!60!black, fill=blue!6, minimum width=0.82\textwidth,
+            minimum height=1.6cm, rounded corners=3pt, align=center,
+            font=\sffamily\bfseries\footnotesize
+        },
+        item/.style={font=\sffamily\scriptsize, text=black!60},
+        dep/.style={->, thick, blue!50!black, >=stealth},
+        di/.style={->, thick, red!50!black, >=stealth, dashed}
+    ]
+    % Four layers
+    \node[layer] (ui) at (0,7.2) {Presentation Layer (UI)};
+    \node[item] at (0,6.3) {HomeScreen \textperiodcentered\ LibraryScreen \textperiodcentered\ SearchScreen \textperiodcentered\ PlaylistScreen \textperiodcentered\ NowPlayingBar \textperiodcentered\ LyricsPanel};
+
+    \node[layer] (svc) at (0,4.8) {Service Layer};
+    \node[item] at (0,3.9) {CatalogService \textperiodcentered\ PlaybackService \textperiodcentered\ LibraryService};
+
+    \node[layer] (dom) at (0,2.4) {Domain Layer};
+    \node[item] at (0,1.5) {Track \textperiodcentered\ LyricLine \textperiodcentered\ Playlist \textperiodcentered\ PlayState \textperiodcentered\ RepeatMode \textperiodcentered\ MusicQueue};
+
+    \node[layer] (sto) at (0,0) {Storage Layer};
+    \node[item] at (0,-0.9) {Database \textperiodcentered\ PlaylistStore \textperiodcentered\ LikedSongStore};
+
+    % Dependency arrows (downward)
+    \draw[dep] (ui.south) -- (svc.north);
+    \draw[dep] (svc.south) -- (dom.north);
+    \draw[dep] (dom.south) -- (sto.north);
+
+    % DI arrows (upward, dashed)
+    \draw[di] (sto.north) -- (dom.south);
+    \draw[di] (dom.north) -- (svc.south);
+    \draw[di] (svc.north) -- (ui.south);
+
+    % Side labels
+    \node[rotate=90, font=\sffamily\scriptsize\bfseries, blue!50!black] at (-4.6, 3.6) {Data Flow \& Dependencies};
+    \node[rotate=90, font=\sffamily\scriptsize\bfseries, red!50!black] at (4.6, 3.6) {Dependency Injection};
+    \end{tikzpicture}
+    \caption{Layered architecture overview showing the four layers of \musictui
+    and their interdependencies. Arrows indicate that higher layers depend on
+    lower layers, with dependency injection flowing in the opposite direction.}
+    \label{fig:architecture}
+\end{figure}
+
+\subsection{Layer Descriptions}
+
+\paragraph{Presentation Layer (UI)}
+The presentation layer comprises the \textual application class
+\musictui(App), six screen classes (\homesc, \searchsc, \librarysc,
+\playlistsc, \fullscreensc, \lyricssc), and twenty-two reusable widget
+classes. This layer is responsible solely for rendering state and capturing
+user input. It contains no business logic; all interaction with application
+state is delegated to the service layer through the \eventbus.
+
+The UI follows a grid-based layout with a two-column, three-row structure:
+the left column contains a collapsible sidebar for navigation, while the right
+column holds the main content area. The bottom row is occupied by the
+persistent \nowplayingbar, which is composited across all screens. CSS-like
+styling is defined in \texttt{style.tcss}, a 597-line theme file that
+implements a dark Spotify-inspired palette with \#121212 background and
+\#1ed760 green accent colour.
+
+\paragraph{Service Layer}
+The service layer consists of three service classes that aggregate domain
+objects and coordinate cross-cutting concerns:
+
+\begin{itemize}
+    \item \catalogservice wraps a \catalogsource implementation and a
+          \trackcache, providing search, track retrieval, lyrics fetching,
+          and stream URL resolution with automatic caching.
+    \item \playbackservice wraps the \player and \eventbus, exposing an
+          event-driven API for playback control that screens and widgets
+          use exclusively.
+    \item \libraryservice wraps the \playliststore, providing playlist CRUD
+          operations, liked-songs management, and song addition/removal.
+\end{itemize}
+
+\paragraph{Domain Layer}
+The domain layer contains the core business models: \track, \lyric,
+\playstate, \playlist, and \repeatmode. These models are immutable
+(frozen dataclasses) and implement value-based equality and hashing. The
+domain layer has no dependencies on external libraries or frameworks.
+
+\paragraph{Storage Layer}
+The storage layer provides persistent data management through \sqlite:
+\playliststore handles playlist and song persistence with track resolution,
+while \likedsongstore manages the liked-songs collection. The
+\texttt{Database} class provides a context-manager-wrapped SQLite connection
+with automatic schema creation and migration support.
+
+\subsection{Dependency Injection}
+
+\musictui uses \protocol-based dependency injection, a form of structural
+typing where dependencies are specified as \py \protocol classes rather than
+concrete implementations. Two key protocols define this pattern:
+
+\begin{designbox}
+\textbf{CatalogSource Protocol:} Any class implementing
+\method{search(query)}, \method{get\_track(id)},
+\method{get\_track\_stream\_url(track)}, and \method{get\_lyrics(track)}
+can serve as a music catalog provider. The current implementation is
+\ytmusicsource, but the protocol enables future providers (local file
+system, Spotify, etc.) to be injected without modifying consuming code.
+\end{designbox}
+
+\begin{designbox}
+\textbf{AudioBackend Protocol:} Any class implementing
+\method{play(url)}, \method{pause()}, \method{resume()}, \method{stop()},
+\method{seek(position\_ms)}, \method{get\_position()},
+\method{get\_duration()}, \method{set\_volume(volume)},
+\method{get\_volume()}, and properties \property{is\_playing} and
+\property{is\_paused} can serve as the audio backend. The current
+implementation is \vlcaudiobackend, but the protocol enables testing with
+\texttt{FakeBackend} and future replacement with alternative backends.
+\end{designbox}
+
+The wiring diagram is as follows:
+
+\begin{verbatim}
+MusicTUI (App)
+  ├── YTMusicSource ──┐
+  ├── TrackCache      │──> CatalogService
+  └───────────────────┘
+  ├── VLCAudioBackend ──┐
+  ├── MusicQueue        │──> Player ──> PlaybackService
+  └─────────────────────┘
+  ├── Database ──> PlaylistStore ──> LibraryService
+  └── EventBus ──┘
+\end{verbatim}
+
+\section{Domain Models}
+
+The domain models in \musictui are implemented as immutable frozen dataclasses
+using \py 3.10+'s \texttt{@dataclass(slots=True, frozen=True)} decorator.
+This design choice provides three key benefits:
+
+\begin{enumerate}
+    \item \textbf{Thread safety:} Frozen objects cannot be mutated after
+          construction, eliminating race conditions in the multi-threaded
+          \textual worker model.
+    \item \textbf{Memory efficiency:} The \texttt{slots=True} parameter
+          eliminates the \texttt{\_\_dict\_\_} per-instance dictionary,
+          reducing memory overhead by approximately 40\% compared to
+          standard dataclasses.
+    \item \textbf{Functional updates:} The \method{replace(**changes)}
+          pattern produces new instances with modified fields, following
+          the immutable update idiom common in functional programming.
+\end{enumerate}
+
+\subsection{Track Model}
+
+The \track dataclass is the central data structure of the application,
+representing a single music track with full metadata:
+
+\begin{lstlisting}[language=Python, caption={The \track frozen dataclass with
+default value normalization and functional update support.}]
+@dataclass(slots=True, frozen=True)
+class Track:
+    id: int
+    title: str = "Unknown Title"
+    artist: str = "Unknown Artist"
+    album: str = "Unknown Album"
+    duration_ms: int = 0
+    image_path: str = "Unknown Image Path"
+    lyrics_path: str = "Unknown Lyrics Path"
+    url: str = ""
+    provider_id: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.title or not self.title.strip():
+            object.__setattr__(self, "title", "Unknown Title")
+        if self.duration_ms < 0:
+            object.__setattr__(self, "duration_ms", 0)
+
+    def to_dict(self) -> dict[str, object]:
+        return {field: getattr(self, field)
+                for field in self.__dataclass_fields__}
+
+    def __hash__(self) -> int: return hash(self.id)
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Track): return NotImplemented
+        return self.id == other.id
+
+    def replace(self, **changes: object) -> Track:
+        return replace(self, **changes)
+\end{lstlisting}
+
+Key design decisions:
+\begin{itemize}
+    \item Track IDs are computed as \texttt{zlib.crc32(video\_id) \& 0xFFFFFFFF},
+          producing deterministic 32-bit unsigned integers from YouTube video IDs.
+    \item The \method{to\_dict()} method enables straightforward serialization
+          for database storage.
+    \item Equality and hashing are based solely on \texttt{id}, allowing tracks
+          to be used in sets and as dictionary keys.
+\end{itemize}
+
+\subsection{LyricLine Model}
+
+The \lyric dataclass represents a single line of synchronized lyrics:
+
+\begin{lstlisting}[language=Python, caption={The \lyric frozen dataclass.}]
+@dataclass(slots=True, frozen=True)
+class LyricLine:
+    timestamp_ms: int
+    text: str
+\end{lstlisting}
+
+\subsection{PlayState Model}
+
+The \playstate dataclass captures a snapshot of playback state:
+
+\begin{lstlisting}[language=Python, caption={The \playstate frozen dataclass.}]
+@dataclass(slots=True, frozen=True)
+class PlayState:
+    is_playing: bool = False
+    is_paused: bool = False
+
+    def replace(self, **changes: object) -> PlayState:
+        return replace(self, **changes)
+\end{lstlisting}
+
+The dual boolean fields allow all four states: not playing/playing,
+paused/not paused. In practice, \texttt{is\_playing=True} and
+\texttt{is\_paused=True} together represent the paused state.
+
+\subsection{Playlist Model}
+
+The \playlist class is a mutable ordered collection that maintains both a
+list and a set of track IDs for O(1) membership testing:
+
+\begin{archbox}
+\textbf{Dual-structure invariant:} The \playlist class maintains
+\property{songs} (a \texttt{list[Track]} for ordered iteration and
+index-based access) and \property{song\_ids} (a \texttt{set[int]} for
+O(1) membership checks). All mutations (\method{add\_song},
+\method{remove\_song}) update both structures atomically, preserving
+the invariant that \texttt{t.id in song\_ids} if and only if
+\texttt{t in songs}.
+\end{archbox}
+
+The cursor-based navigation (\method{next\_song}, \method{previous\_song})
+supports sequential track traversal within a playlist context.
+
+\subsection{RepeatMode Enum}
+
+The \repeatmode enumeration defines three repeat modes using modular arithmetic:
+
+\begin{lstlisting}[language=Python, caption={RepeatMode enum with cycle logic.}]
+class RepeatMode(Enum):
+    OFF = 0
+    ALL = 1
+    ONE = 2
+
+    def next_mode(self) -> RepeatMode:
+        return RepeatMode((self.value + 1) % 3)
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[>=stealth, node distance=2.8cm,
+        state/.style={circle, draw=blue!60!black, fill=blue!6, minimum size=2.2cm,
+            font=\sffamily\bfseries\footnotesize, align=center}
+    ]
+    \node[state] (off) at (0,2.2) {OFF};
+    \node[state] (all) at (2.8,0) {ALL};
+    \node[state] (one) at (-2.8,0) {ONE};
+
+    \draw[->, thick, blue!50!black] (off) to[bend left=20]
+        node[right, font=\sffamily\scriptsize, text=blue!50!black] {next\_mode()} (all);
+    \draw[->, thick, blue!50!black] (all) to[bend left=20]
+        node[below, font=\sffamily\scriptsize, text=blue!50!black] {next\_mode()} (one);
+    \draw[->, thick, blue!50!black] (one) to[bend left=20]
+        node[left, font=\sffamily\scriptsize, text=blue!50!black] {next\_mode()} (off);
+
+    % Value labels
+    \node[font=\sffamily\tiny, text=black!50] at (0,1.5) {(value 0)};
+    \node[font=\sffamily\tiny, text=black!50] at (2.3,-0.5) {(value 1)};
+    \node[font=\sffamily\tiny, text=black!50] at (-2.3,-0.5) {(value 2)};
+    \end{tikzpicture}
+    \caption{The repeat mode cycle diagram showing the three states and
+    transitions via the \method{next\_mode()} method.}
+    \label{fig:repeat_mode}
+\end{figure}
+
+\section{Playback Subsystem}
+
+The playback subsystem coordinates audio output, queue management, and
+playback state. It consists of three core components: the audio backend
+protocol, the music queue, and the high-level player controller.
+
+\subsection{Audio Backend Protocol}
+
+The \audiobackend \protocol defines the interface for all audio playback
+backends. The current implementation, \vlcaudiobackend, wraps the
+\pyvlc library \cite{vlc}:
+
+\begin{lstlisting}[language=Python, caption={VLCAudioBackend wrapping python-vlc.}]
+class VLCAudioBackend:
+    def __init__(self) -> None:
+        self._instance = vlc.Instance(
+            "--quiet", "--no-video-title-show"
+        )
+        self._player = None
+
+    def _ensure_player(self) -> Any:
+        if self._player is None or not hasattr(self._player, "play"):
+            self._player = self._instance.media_player_new()
+        return self._player
+
+    def play(self, url: str) -> None:
+        player = self._ensure_player()
+        media = self._instance.media_new(url)
+        player.set_media(media)
+        player.play()
+
+    def seek(self, position_ms: int) -> None:
+        if self._player:
+            self._player.set_time(position_ms)
+
+    @property
+    def is_playing(self) -> bool:
+        val = self._player.is_playing()
+        return bool(val) if val is not None else False
+\end{lstlisting}
+
+The backend uses lazy initialization of the \texttt{MediaPlayer} instance
+and caches the \texttt{Paused} state enum for fast comparison in the
+\property{is\_paused} property.
+
+\subsection{Music Queue}
+
+The \musicqueue manages the playback queue with history tracking, repeat
+modes, and shuffle support:
+
+\begin{archbox}
+\textbf{Queue invariants:} The queue maintains three internal structures:
+\begin{itemize}
+    \item \texttt{\_tracks}: upcoming tracks to play (list)
+    \item \texttt{\_track\_ids}: track IDs for O(1) lookups (set)
+    \item \texttt{\_history}: played tracks for back navigation (list)
+    \item \texttt{\_current}: the currently playing track
+\end{itemize}
+The \method{play\_next()} method transfers the current track to history
+and pops the next track from the queue. In \repeatmode.ALL, when the
+queue is exhausted, the history is restored to the queue for a full repeat.
+\end{archbox}
+
+\begin{lstlisting}[language=Python, caption={Core queue operations.}]
+class MusicQueue:
+    def play_next(self) -> Track | None:
+        if not self._tracks:
+            if self._repeat == RepeatMode.ALL and self._history:
+                self._tracks = self._history
+                self._history = []
+            else:
+                return None
+        if self._current is not None:
+            self._history.append(self._current)
+        self._current = self._tracks.pop(0)
+        self._track_ids.discard(self._current.id)
+        return self._current
+
+    def skip_to(self, track: Track) -> None:
+        if track.id not in self._track_ids:
+            raise ValueError("Track is not in the queue")
+        if self._current is not None:
+            self._history.append(self._current)
+        self._tracks.remove(track)
+        self._track_ids.discard(track.id)
+        self._current = track
+\end{lstlisting}
+
+\subsection{Player Controller}
+
+The \player class sits at the intersection of the audio backend, the queue,
+and the UI. It handles track transitions, repeat logic, and UI event
+emission:
+
+\begin{lstlisting}[language=Python, caption={Player controller coordinating
+backend, queue, and UI events.}]
+class Player:
+    def play(self, track: Track) -> None:
+        if not self._queue.contains(track):
+            self._queue.add(track)
+        self._queue.skip_to(track)
+        url = (self._stream_resolver(track)
+               if self._stream_resolver else track.url)
+        self._backend.play(url)
+        self._schedule_ui_update()
+
+    def _update_ui(self) -> None:
+        if self._app is None: return
+        current = self.current_track
+        if current is None: return
+        self._app.post_message(
+            PlaybackStateChanged(self.is_playing, self.is_paused)
+        )
+        self._app.post_message(
+            PositionUpdated(self.position_ms, self.duration_ms)
+        )
+        self._app.post_message(QueueUpdated(self.queue))
+\end{lstlisting}
+
+The \method{on\_track\_ended()} method implements the repeat logic:
+\repeatmode.ONE restarts the current track, while \repeatmode.ALL and
+\repeatmode.OFF advance to the next track in the queue.
+
+\section{Catalog Integration}
+
+The catalog subsystem provides music discovery and metadata retrieval through
+integration with YouTube Music and supplementary lyrics APIs.
+
+\subsection{YouTube Music Source}
+
+The \ytmusicsource class implements the \catalogsource \protocol using the
+\ytmusicapi library \cite{ytmusicapi}:
+
+\begin{lstlisting}[language=Python, caption={YTMusicSource search and track construction.}]
+class YTMusicSource(CatalogSource):
+    def search(self, query: str) -> list[Track]:
+        client = self._get_client()
+        if client is None: return []
+        results = client.search(query, filter="songs")
+        tracks: list[Track] = []
+        seen: set[str] = set()
+        for result in results:
+            if not result.get("videoId"): continue
+            vid = result["videoId"]
+            if vid in seen: continue
+            seen.add(vid)
+            tracks.append(self._make_track(result))
+            if len(tracks) >= 12: break
+        return tracks
+
+    @staticmethod
+    def _make_track(result: dict) -> Track:
+        vid = result["videoId"]
+        return Track(
+            id=zlib.crc32(vid.encode("utf-8")) & 0xFFFFFFFF,
+            provider_id=vid,
+            title=result.get("title", "Unknown Title"),
+            artist=artists[0]["name"] if artists else "Unknown Artist",
+            album=(result.get("album") or {}).get("name", "Unknown Album"),
+            duration_ms=_duration_to_ms(result.get("duration")),
+            image_path=thumbs[-1]["url"] if thumbs else "",
+            url=f"https://music.youtube.com/watch?v={vid}",
+        )
+\end{lstlisting}
+
+\subsection{Lyrics Fetching Pipeline}
+
+The lyrics fetching system implements a four-tier fallback pipeline to
+maximize coverage:
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[>=stealth,
+        tier/.style={
+            draw=blue!60!black, fill=blue!6, minimum width=0.75\textwidth,
+            align=center, font=\sffamily\bfseries\footnotesize,
+            inner sep=4pt, rounded corners=2pt
+        },
+        arrow/.style={->, thick, blue!50!black},
+        fail/.style={->, thick, red!40!black, dashed}
+    ]
+    % Input
+    \node[draw=black!30, fill=gray!5, minimum width=0.5\textwidth,
+        align=center, font=\sffamily\scriptsize, rounded corners=2pt]
+        (input) at (0,7) {Track: ``Artist -- Title''};
+
+    % Tiers
+    \node[tier] (t1) at (0,5.5) {Tier 1: YouTube Music (ytmusicapi)};
+    \node[font=\sffamily\tiny, text=black!50] at (0,5.0) {
+        \texttt{client.get\_watch\_playlist(videoId)} \\
+        \texttt{client.get\_lyrics(lyricsId)}
+    };
+
+    \node[tier] (t2) at (0,3.2) {Tier 2: lrclib.net API};
+    \node[font=\sffamily\tiny, text=black!50] at (0,2.7) {
+        \texttt{GET /api/search?track\_name=\&artist\_name=} \\
+        \texttt{syncedLyrics or plainLyrics}
+    };
+
+    \node[tier] (t3) at (0,0.8) {Tier 3: syncedlyrics Library};
+    \node[font=\sffamily\tiny, text=black!50] at (0,0.3) {
+        \texttt{syncedlyrics.search(artist title)} \\
+        \texttt{LRC-formatted output}
+    };
+
+    \node[tier] (t4) at (0,-1.6) {Tier 4: Linear Distribution};
+    \node[font=\sffamily\tiny, text=black!50] at (0,-2.1) {
+        Split text into lines, distribute evenly \\
+        across \texttt{track.duration\_ms}
+    };
+
+    % Output
+    \node[draw=green!60!black, fill=green!6, minimum width=0.5\textwidth,
+        align=center, font=\sffamily\bfseries\footnotesize, rounded corners=2pt]
+        (output) at (0,-3.6) {[LyricLine(timestamp\_ms, text)]};
+
+    % Arrows
+    \draw[arrow] (input.south) -- (t1.north);
+    \draw[arrow] (t1.south) -- (t2.north);
+    \draw[arrow] (t2.south) -- (t3.north);
+    \draw[arrow] (t3.south) -- (t4.north);
+    \draw[arrow] (t4.south) -- (output.north);
+
+    % Fallback labels
+    \node[font=\sffamily\tiny, text=red!60!black, rotate=-90] at (-2.3, 4.35) {empty?};
+    \node[font=\sffamily\tiny, text=red!60!black, rotate=-90] at (-2.3, 2.05) {empty?};
+    \node[font=\sffamily\tiny, text=red!60!black, rotate=-90] at (-2.3,-0.35) {empty?};
+    \end{tikzpicture}
+    \caption{Lyrics fetching pipeline: a four-tier fallback system that maximises
+    coverage by attempting YouTube Music, then lrclib.net, then syncedlyrics,
+    and finally falling back to linear time distribution.}
+    \label{fig:lyrics_pipeline}
+\end{figure}
+
+\paragraph{Tier 1: YouTube Music (ytmusicapi)}
+The system first attempts to retrieve lyrics via the YouTube Music watch
+playlist endpoint. It fetches the watch playlist for the track's video ID,
+extracts the lyrics bid (identifier), and then retrieves the full lyrics
+text.
+
+\paragraph{Tier 2: lrclib.net API}
+When YouTube Music lyrics are unavailable, the system queries the lrclib
+API \cite{lrclib} at \texttt{https://lrclib.net/api/search} with the
+artist and track name. The response (JSON containing synced or plain
+lyrics) is parsed using the \lyricsparser.
+
+\paragraph{Tier 3: syncedlyrics Library}
+As a third fallback, the \texttt{syncedlyrics} library is invoked to search
+for synced lyrics using the artist and track name as a query.
+
+\paragraph{Tier 4: Linear Distribution}
+When all API-based sources fail, plain lyrics text is distributed evenly
+across the track duration using linear interpolation:
+
+\begin{equation}
+    \text{timestamp}_i = \left\lfloor \frac{i}{N-1} \times \text{duration\_ms} \right\rfloor
+\end{equation}
+
+where $N$ is the number of lyric lines and $i$ ranges from $0$ to $N-1$.
+
+\subsection{LRC Parsing}
+
+The \lyricsparser converts raw \lrc-formatted text into a list of \lyric
+objects using regex matching:
+
+\begin{lstlisting}[language=Python, caption={LRC timestamp parsing.}]
+_LRC_PATTERN = re.compile(
+    r"^\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)$"
+)
+
+@staticmethod
+def parse(raw_text: str) -> list[LyricLine]:
+    lines: list[LyricLine] = []
+    for raw_line in raw_text.splitlines():
+        match = _LRC_PATTERN.match(raw_line.strip())
+        if match is None: continue
+        minutes, seconds, fraction, text = match.groups()
+        milliseconds = int((fraction or "0").ljust(3, "0"))
+        timestamp_ms = (int(minutes) * 60_000
+                       + int(seconds) * 1_000
+                       + milliseconds)
+        lines.append(LyricLine(timestamp_ms, text))
+    return lines
+\end{lstlisting}
+
+The regex handles optional centiseconds (the \texttt{.xx} portion),
+right-padding them with zeros to form a three-digit millisecond value.
+
+\subsection{Stream Resolution}
+
+Stream URLs are resolved via lazy-loaded \ytdlp \cite{ytdlp}. The
+\texttt{yt-dlp} module is imported only when needed, and the result is
+cached in the \trackcache keyed by the track's URL:
+
+\begin{lstlisting}[language=Python, caption={Lazy yt-dlp stream resolution.}]
+def _get_yt_dlp_dl(self) -> Any:
+    if self._yt_dlp_dl is not None:
+        return self._yt_dlp_dl
+    try:
+        yt_dlp = import_module("yt_dlp")
+        options = {
+            "format": "bestaudio/best",
+            "quiet": True,
+            "noplaylist": True,
+            "cachedir": True,
+        }
+        self._yt_dlp_dl = yt_dlp.YoutubeDL(options)
+    except ImportError:
+        self._yt_dlp_dl = None
+    return self._yt_dlp_dl
+
+def get_track_stream_url(self, track: Track) -> str:
+    dl = self._get_yt_dlp_dl()
+    if dl is None:
+        return track.url
+    info = dl.extract_info(track.url, download=False)
+    return info.get("url", track.url)
+\end{lstlisting}
+
+\section{User Interface}
+
+The UI is built on the \textual framework, which provides a reactive component
+model with CSS-like styling, keyboard bindings, and built-in support for
+asynchronous workers.
+
+\subsection{Application Structure}
+
+The \musictui(App) class manages the application lifecycle, service
+initialization, screen navigation, and asset preloading:
+
+\begin{lstlisting}[language=Python, caption={Main application class wiring
+all services together.}]
+class MusicTUI(App):
+    CSS_PATH = "style.tcss"
+    BINDINGS = [
+        Binding("q", "quit", "Quit"),
+        Binding("h", "go_home", "Home"),
+        Binding("s", "go_search", "Search"),
+        Binding("l", "go_library", "Library"),
+        Binding("f", "toggle_fullscreen", "Fullscreen"),
+    ]
+
+    def on_mount(self) -> None:
+        self._event_bus = EventBus(self)
+        self._catalog_source = YTMusicSource()
+        self._store = Database("store.db")
+        self._track_cache = TrackCache(max_size=50)
+        self._playlist_store = PlaylistStore(
+            self._store, self._catalog_source
+        )
+        self._catalog_service = CatalogService(
+            self._catalog_source, self._track_cache
+        )
+        self._library_service = LibraryService(self._playlist_store)
+        self._player = Player(
+            backend=VLCAudioBackend(),
+            queue=MusicQueue(),
+            stream_resolver=lambda t:
+                self._catalog_service.get_stream(t),
+        )
+        self._player.set_textual_app(self)
+        self._playback_service = PlaybackService(
+            self._player, self._event_bus
+        )
+        self.push_screen(HomeScreen(
+            self._catalog_service,
+            self._playback_service,
+            self._library_service
+        ))
+\end{lstlisting}
+
+\subsection{Screen Architecture}
+
+\musictui defines six screen classes, each responsible for a specific
+view of the application:
+
+\begin{table}[H]
+\centering
+\caption{Screen overview table describing each screen's purpose and key
+features.}
+\label{tab:screens}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Screen} & \textbf{Description} \\
+\midrule
+\homesc & Recommended tracks with infinite scroll, search bar,
+next-track card, and now-playing bar \\
+\searchsc & Query input with search results in a track list, supporting
+like and add-to-playlist actions \\
+\librarysc & Two-panel layout: playlist table (left) and song list (right)
+with CRUD operations \\
+\playlistsc & Single playlist view with track playback, navigation, and
+song removal \\
+\fullscreensc & Large album-art overlay filling the terminal, with track
+title/artist caption \\
+\lyricssc & Synced lyrics overlay with auto-highlighting, loaded via
+background worker \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    % [FIGURE: ui_layout.png — A screenshot of the home screen showing the sidebar, recommended tracks, now-playing bar, and action hints]
+    \includegraphics[width=0.9\textwidth]{ui_layout.png}
+    \caption{The home screen layout showing the two-column grid with sidebar
+navigation, recommended tracks list, next-track preview, and the persistent
+now-playing bar at the bottom.}
+    \label{fig:ui_layout}
+\end{figure}
+
+\subsection{Widget Hierarchy}
+
+The application uses 22 reusable widget classes. Figure~\ref{fig:ansi_art_example}
+shows the main groupings.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        charbox/.style={draw=black!30, fill=gray!3, minimum size=0.6cm,
+            inner sep=0pt, outer sep=1pt},
+        pixel/.style={inner sep=0pt, minimum size=0.28cm}
+    ]
+    % Title
+    \node[font=\sffamily\bfseries\footnotesize, text=blue!60!black]
+        at (0,3.2) {ANSI Half-Block Colour Rendering};
+
+    % Row 1: Top pixel row (background colour)
+    \node[font=\sffamily\scriptsize\bfseries, text=black!50]
+        at (-3.5,2.4) {Top pixel row};
+    \foreach \c [count=\i] in {red,blue,green,yellow,purple,cyan,orange,magenta,teal,lime,brown,pink} {
+        \node[pixel, fill=\c!60] (b\i) at (-2.8 + \i * 0.5,2.4) {};
+    }
+
+    % Row 2: Bottom pixel row (foreground colour)
+    \node[font=\sffamily\scriptsize\bfseries, text=black!50]
+        at (-3.5,1.7) {Bottom pixel row};
+    \foreach \c [count=\i] in {blue,green,red,cyan,yellow,magenta,purple,orange,teal,lime,brown,pink} {
+        \node[pixel, fill=\c!60] (f\i) at (-2.8 + \i * 0.5,1.7) {};
+    }
+
+    % Arrow down
+    \draw[->, thick, black!50] (-3.5,1.4) -- (-3.5,0.8);
+    \node[font=\sffamily\scriptsize\bfseries, text=black!50]
+        at (-3.5,1.1) {combine};
+
+    % Rendered half-block characters
+    \node[font=\sffamily\scriptsize\bfseries, text=black!50]
+        at (-3.5,0.3) {Rendered};
+    \foreach \i/\fc [count=\bi] in {
+        1/blue, 2/green, 3/red, 4/cyan, 5/yellow, 6/magenta,
+        7/purple, 8/orange, 9/teal, 10/lime, 11/brown, 12/pink
+    } {
+        \node[charbox, fill=\fc!30, draw=\fc!60!black, thin]
+            at (-2.8 + \i * 0.5, 0.3) {\textcolor{\fc}{\textbf{\textsf{b}}}};
+    }
+
+    % Explanation
+    \node[font=\sffamily\tiny, text=black!40, align=center]
+        at (0,-0.8) {Each terminal character uses the top pixel as\\
+        background colour and the bottom pixel as foreground colour,\\
+        producing a dense full-colour image with half-block glyphs (\textbackslash u2584)};
+    \end{tikzpicture}
+    \caption{ANSI half-block colour rendering: each terminal character
+combines two pixel rows -- the top row as background colour and the bottom
+row as foreground colour -- producing a dense, full-colour image.}
+    \label{fig:ansi_art_example}
+\end{figure}
+
+\subsubsection{Now-Playing Bar}
+
+The \nowplayingbar is the most complex widget, composed of three sub-sections:
+
+\begin{itemize}
+    \item \textbf{Track info} (\trackinfo): Album art (\albumart) +
+          title/artist labels. Reacts to \eventbus messages to update
+          displayed information.
+    \item \textbf{Playback center} (\playbackcenter): Transport controls
+          (\playercontrols: prev, play/pause, next) + seek bar
+          (\progressrow: current time + \trackprogress slider + duration).
+    \item \textbf{Utilities} (\playerutilities): Lyrics toggle button +
+          \volumecontrol (mute button + volume slider) + fullscreen toggle.
+\end{itemize}
+
+The bar uses \textual's reactive properties to respond to state changes.
+
+\subsubsection{Album Art Rendering}
+
+The \albumart widget renders album artwork as \ansi half-block colour text.
+It uses a background worker to perform the computationally intensive
+downscaling operation.
+
+\begin{lstlisting}[language=Python, caption={AlbumArt widget rendering.}]
+class AlbumArt(Static):
+    def _render_artwork(self) -> None:
+        self._render_generation += 1
+        cols = self._art_cols or round(
+            self.size.height * CELL_ASPECT
+        )
+        self.run_worker(
+            partial(downscale, self._source,
+                    cols=cols, cell_aspect=CELL_ASPECT),
+            name="album-art-render", thread=True,
+        )
+
+    def on_worker_state_changed(self, event):
+        if event.state == WorkerState.SUCCESS:
+            self.update(Text.from_ansi(event.worker.result))
+\end{lstlisting}
+
+\subsection{ANSI Half-Block Colour Rendering}
+
+The \downscaler module converts any image (local file or URL) to \ansi
+half-block colour text using \pil and \numpy \cite{numpy,pillow}. The algorithm:
+
+\begin{enumerate}
+    \item Load the image using \pil (Pillow).
+    \item Resize to $W$ columns by $H = 2 \times \text{rows}$ pixels
+          using BICUBIC interpolation.
+    \item For each pair of pixel rows $(2i, 2i+1)$, combine the top pixel
+          (background colour) and bottom pixel (foreground colour) into a
+          single \ansi half-block character.
+    \item Each character is encoded as an escape sequence:
+          \texttt{\textbackslash{}e[48;2;R;G;Bm\textbackslash{}e[38;2;r;g;bm\textbackslash{}2584}.
+\end{enumerate}
+
+\begin{lstlisting}[language=Python, caption={The core downscaling algorithm.}]
+_ANSI_FMT = "\x1b[48;2;{};{};{}m\x1b[38;2;{};{};{}m\u2584"
+
+def downscale(image_path: str, cols: int = 24,
+              cell_aspect: float = 2.1) -> str:
+    text_rows = max(1, round(cols / cell_aspect))
+    W, H = cols, text_rows * 2
+    image = Image.open(BytesIO(_read_image(image_path)))
+    image = image.convert("RGB")
+    image = image.resize((W, H), Image.BICUBIC)
+    arr = np.asarray(image)
+    lines = []
+    for ty in range(0, H, 2):
+        top = arr[ty].tolist()
+        bot = arr[ty + 1].tolist()
+        line_parts = [
+            _ANSI_FMT.format(a[0], a[1], a[2], b[0], b[1], b[2])
+            for a, b in zip(top, bot)
+        ]
+        lines.append("".join(line_parts))
+    return "\n".join(lines)
+\end{lstlisting}
+
+The algorithm is cached via \texttt{@lru\_cache(maxsize=64)}, avoiding
+redundant computation.
+
+\begin{figure}[H]
+    \centering
+    % [FIGURE: lyrics_screen.png — A screenshot of the lyrics overlay showing synced highlighted lyrics]
+    \includegraphics[width=0.9\textwidth]{lyrics_screen.png}
+    \caption{The lyrics overlay screen showing synchronized lyrics with the
+    currently active line highlighted in green, loaded via a background
+    worker and highlighted every 250ms using binary search.}
+    \label{fig:lyrics_screen}
+\end{figure}
+
+\subsection{Event-Driven Communication}
+
+The \eventbus decouples the player from UI widgets. Instead of widgets
+polling the player for state, the player posts messages to the \eventbus,
+and widgets subscribe to the relevant message types:
+
+\begin{lstlisting}[language=Python, caption={Event types and EventBus.}]
+class EventBus:
+    def __init__(self, app: App) -> None:
+        self._app = app
+
+    def emit(self, message: Message) -> None:
+        self._app.post_message(message)
+
+    def emit_playback_started(self, track: Track) -> None:
+        self.emit(PlaybackStarted(track))
+
+    def emit_position_updated(
+        self, position_ms: int = 0, duration_ms: int = 0
+    ) -> None:
+        self.emit(PositionUpdated(position_ms, duration_ms))
+\end{lstlisting}
+
+Message types include: \texttt{PlaybackStarted}, \texttt{PlaybackEnded},
+\texttt{PlaybackStateChanged}, \texttt{PositionUpdated}, \texttt{QueueUpdated},
+\texttt{LikedSongsChanged}, and \texttt{PlaylistChanged}.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[>=stealth,
+        participant/.style={
+            draw=blue!60!black, fill=blue!6, minimum width=1.6cm,
+            align=center, font=\sffamily\scriptsize\bfseries,
+            inner sep=3pt
+        },
+        msg/.style={->, thick, blue!50!black},
+        altmsg/.style={->, thick, red!40!black, dashed}
+    ]
+    % Participants across the top
+    \foreach \x/\name [count=\i] in {
+        {0}/User, {1.6}/TrackList, {3.4}/Screen,
+        {5.2}/PlaybackService, {7.0}/Player, {8.8}/EventBus,
+        {10.8}/NowPlayingBar
+    } {
+        \node[participant] (p\i) at (\x,5.5) {\name};
+        \draw[dashed, black!30] (p\i.south) -- (p\i.south |- 0,0);
+    }
+
+    % Message arrows
+    \draw[msg] (p1) -- node[above, font=\sffamily\tiny] {click(track)} (p2);
+    \draw[msg] (p2) -- node[above, font=\sffamily\tiny] {on\_track\_selected} (p3);
+    \draw[msg] (p3) -- node[above, font=\sffamily\tiny] {play(track)} (p4);
+    \draw[msg] (p4) -- node[above, font=\sffamily\tiny] {play(track)} (p5);
+    \draw[msg] (p5) -- node[above, font=\sffamily\tiny] {emit(PlaybackStarted)} (p6);
+    \draw[msg] (p6) -- node[above, font=\sffamily\tiny] {handle()} (p7);
+
+    % Position update broadcast
+    \draw[msg] (p5) -- node[above, font=\sffamily\tiny] {emit(PositionUpdated)} (p6);
+    \draw[msg] (p6) -- node[above, font=\sffamily\tiny, pos=0.3] {handle()} (p3);
+
+    \node[font=\sffamily\scriptsize, text=black!50] at (5.5, -0.3) {
+        (Rightward arrows = synchronous calls; downward = event broadcast)};
+    \end{tikzpicture}
+    \caption{Sequence diagram showing the event flow when a user clicks a
+    track: the click propagates through the track list widget to the screen,
+    which calls the playback service, which notifies the player, which posts
+    messages to the event bus, which are consumed by all subscribed widgets.}
+    \label{fig:event_flow}
+\end{figure}
+
+\subsection{Library Screen}
+
+The \librarysc provides a two-panel layout for playlist management. The left
+panel is a \texttt{DataTable} listing all playlists, while the right panel
+displays the songs in the selected playlist:
+
+\begin{figure}[H]
+    \centering
+    % [FIGURE: library_screen.png — A screenshot of the library screen showing the playlist table on the left and song list on the right]
+    \includegraphics[width=0.9\textwidth]{library_screen.png}
+    \caption{The library screen with the two-panel layout: playlist table on
+    the left and song list on the right. Supports playlist CRUD operations
+    (create, rename, delete) via modal dialogs.}
+    \label{fig:library_screen}
+\end{figure}
+
+\subsection{Modal Dialogs}
+
+Three modal screen classes handle user input: \texttt{NewPlaylistScreen},
+\texttt{RenamePlaylistScreen}, and \texttt{PlaylistPickerScreen}. All modals
+support \texttt{Escape}-to-cancel and \texttt{Enter}-to-submit shortcuts.
+
+\subsubsection{Fullscreen Screen}
+
+The \fullscreensc provides a full-terminal overlay showing a large
+\ansi half-block colour rendering of the current track's album art:
+
+\begin{figure}[H]
+    \centering
+    % [FIGURE: fullscreen_art.png — A screenshot of the fullscreen album art overlay showing large ANSI half-block colour art]
+    \includegraphics[width=0.9\textwidth]{fullscreen_art.png}
+    \caption{The fullscreen overlay displaying a large \ansi half-block colour
+    rendering of the current track's album art, filling the terminal window.}
+    \label{fig:fullscreen_art}
+\end{figure}
+
+\section{Storage Layer}
+
+The storage layer provides persistent data management using \sqlite \cite{sqlite},
+a lightweight, serverless, zero-configuration SQL database engine.
+
+\subsection{Database Wrapper}
+
+The \texttt{Database} class wraps an \sqlite connection with context manager
+support and automatic schema management:
+
+\begin{lstlisting}[language=Python, caption={Database wrapper with migration.}]
+class Database:
+    def __init__(self, db_path: str) -> None:
+        self._db_path = Path(db_path)
+        self._connect()
+
+    def _connect(self) -> None:
+        self._conn = sqlite3.connect(str(self._db_path))
+        self._conn.row_factory = sqlite3.Row
+        rows = self._conn.execute(
+            "PRAGMA table_info(liked_songs)"
+        ).fetchall()
+        if "track_id" in [r["name"] for r in rows]:
+            self._conn.execute("DROP TABLE IF EXISTS liked_songs")
+        self._conn.execute(
+            "CREATE TABLE IF NOT EXISTS liked_songs "
+            "(provider_id TEXT PRIMARY KEY)"
+        )
+        self._conn.execute(
+            "CREATE TABLE IF NOT EXISTS tracks "
+            "(id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "provider_id TEXT UNIQUE, title TEXT, artist TEXT, "
+            "album TEXT, duration_ms INTEGER, "
+            "image_path TEXT, lyrics_path TEXT, url TEXT)"
+        )
+        self._conn.execute(
+            "CREATE TABLE IF NOT EXISTS playlists "
+            "(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)"
+        )
+        self._conn.execute(
+            "CREATE TABLE IF NOT EXISTS playlist_songs "
+            "(playlist_id INTEGER NOT NULL, track_id INTEGER NOT NULL, "
+            "FOREIGN KEY(playlist_id) REFERENCES playlists(id), "
+            "FOREIGN KEY(track_id) REFERENCES tracks(id), "
+            "PRIMARY KEY(playlist_id, track_id))"
+        )
+        self._conn.commit()
+
+    def __enter__(self) -> Self: return self
+    def __exit__(self, *args: object) -> None: self.close()
+\end{lstlisting}
+
+The schema includes four tables: \texttt{tracks}, \texttt{playlists},
+\texttt{playlist\_songs} (junction table with foreign keys), and
+\texttt{liked\_songs}.
+
+\subsection{Playlist and Liked-Songs Stores}
+
+The \playliststore class manages playlist and song persistence, resolving
+stored track IDs back to \track objects. The \likedsongstore manages the
+liked-songs collection using \texttt{INSERT OR IGNORE} to prevent duplicates.
+
+\section{Testing}
+
+\musictui includes a comprehensive test suite organized in parallel to the
+production code structure, using \texttt{pytest} \cite{pytest}.
+
+\subsection{Test Structure}
+
+\begin{verbatim}
+tests/
+├── catalog/
+│   ├── fake_catalog_source.py      # In-memory mock for CatalogSource
+│   ├── test_fake_catalog_source.py # Search functionality tests
+│   ├── test_lyrics_parser.py       # LRC parsing edge cases
+│   ├── test_lyrics_provider.py     # Lyrics fetch tests
+│   └── test_track_cache.py         # LRU cache + TrackCache tests
+├── models/
+│   ├── test_play_state.py          # Immutable state tests
+│   ├── test_playlist.py            # CRUD + navigation tests
+│   ├── test_repeat_mode.py         # Cycle tests
+│   └── test_track.py               # Construction + replace tests
+├── playback/
+│   ├── fake_backend.py             # In-memory mock for AudioBackend
+│   ├── test_music_queue.py         # Queue operation tests
+│   └── test_player.py              # Player operation tests
+└── store/
+    ├── test_liked_songs_store.py   # SQLite in-memory tests
+    └── test_playlist_store.py      # Playlist persistence tests
+\end{verbatim}
+
+\subsection{Mock Implementations}
+
+Two key mock classes enable unit testing without external dependencies:
+
+\begin{lstlisting}[language=Python, caption={FakeBackend mock for testing.}]
+class FakeBackend(AudioBackend):
+    def __init__(self):
+        self._playing = False
+        self._paused = False
+        self._volume = 75
+        self._position_ms = 0
+
+    def play(self, url: str) -> None:
+        self._playing = True
+        self._paused = False
+
+    def pause(self) -> None: self._paused = True
+    def resume(self) -> None: self._paused = False
+    def stop(self) -> None: self._playing = False
+
+    def seek(self, position_ms: int) -> None:
+        self._position_ms = position_ms
+
+    def get_position(self) -> int: return self._position_ms
+    def get_duration(self) -> int: return 180000
+\end{lstlisting}
+
+\subsection{Test Categories}
+
+\paragraph{Model Tests (36 tests)}
+Model tests verify frozen dataclass construction, the \method{replace()}
+functional update pattern, immutability guarantees, hash/equality semantics,
+and normalization edge cases. The \track model is tested for all default
+values, field normalization (whitespace-only fields fall back to defaults),
+negative duration clamping, CRC32 ID generation, and hash consistency for use
+in sets and dictionaries. The \playlist model is tested for O(1) membership
+via set-backed lookup, cursor position tracking on add/remove, and the
+\method{next\_song} / \method{previous\_song} navigation methods.
+
+\begin{lstlisting}[language=Python, caption={Immutability test for frozen dataclass.}]
+class TestTrack:
+    def test_immutability(self):
+        t = Track(id=1, title="Test")
+        try:
+            t.title = "Changed"
+            assert False, "Should not mutate frozen dataclass"
+        except Exception:
+            pass
+
+    def test_hash_and_equality(self):
+        t1 = Track(id=1, title="Test")
+        t2 = Track(id=1, title="Different")
+        assert t1 == t2  # Same id => equal
+        assert hash(t1) == hash(t2)
+        s = {t1}
+        assert t2 in s  # Works in sets
+\end{lstlisting}
+
+\paragraph{Cache Tests (16 tests)}
+The \trackcache and its underlying \texttt{\_LRUCache} generic LRU cache are
+tested for eviction policy, LRU promotion (accessing a key moves it to the
+most-recently-used position), key normalization for lyrics (whitespace
+stripping and case-insensitive matching), and independent sub-caches for
+tracks, lyrics, and stream URLs.
+
+\begin{lstlisting}[language=Python, caption={LRU promotion test.}]
+class TestLRUCache:
+    def test_lru_promotion(self):
+        cache = _LRUCache(max_size=3)
+        cache.put("a", 1)
+        cache.put("b", 2)
+        cache.put("c", 3)
+        cache.get("a")  # promotes "a" to MRU
+        cache.put("d", 4)  # evicts "b" (was LRU)
+        assert cache.get("a") == 1
+        assert cache.get("b") is None  # evicted
+\end{lstlisting}
+
+\paragraph{Queue and Player Tests (41 tests)}
+Queue tests verify FIFO ordering, history management, repeat mode cycling,
+\method{skip\_to()} validation, duplicate prevention, shuffle, and the
+\method{replace\_upcoming()} operation. Player tests use \texttt{FakeBackend}
+to verify play/pause toggling, seek, volume control, position tracking,
+stream resolver integration, and the \method{on\_track\_ended()} repeat
+handling logic.
+
+\paragraph{Catalog Mock Tests (8 tests)}
+The \texttt{FakeCatalogSource} mock is tested for case-insensitive search
+across title, artist, and album fields, empty query handling, and multiple
+match returns.
+
+\paragraph{Storage Tests (24 tests)}
+Storage tests use in-memory \sqlite databases (\texttt{Database(":memory:")})
+to verify CRUD operations, foreign key constraints, provider-based track
+resolution (ensuring \texttt{zlib.crc32} in-memory IDs resolve correctly to
+the database primary key), and the liked-songs store ordering.
+
+\subsection{Running Tests}
+
+\begin{lstlisting}[style=console, caption={Running the test suite.}]
+$ cd music/
+$ python -m pytest tests/ -v
+======================== 167 passed in 0.16s =========================
+$ python -m pytest tests/ -v --cov=music --cov-report=term-missing
+\end{lstlisting}
+
+The test suite covers all production modules in parallel: catalog (parsing,
+caching, search mocks), models (frozen dataclasses, enum cycling), playback
+(queue operations, player controls), and store (SQLite persistence). Tests
+run in under one second, enabling rapid feedback during development.
+
+\section{Getting Started}
+
+\subsection{Prerequisites}
+
+\begin{itemize}
+    \item \py 3.12 or later
+    \item \vlc media library (system package)
+    \item A terminal emulator with 24-bit colour support
+          (e.g., Windows Terminal, iTerm2, GNOME Terminal)
+\end{itemize}
+
+\subsection{Installation}
+
+\begin{lstlisting}[style=console, caption={Installation instructions.}]
+$ git clone https://github.com/username/musictui.git
+$ cd music
+$ python -m venv .venv
+$ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+$ pip install -e ".[dev]"
+$ python -m pytest tests/ -v
+\end{lstlisting}
+
+\subsection{Running the Application}
+
+\begin{lstlisting}[style=console, caption={Launching the application.}]
+$ python main.py
+\end{lstlisting}
+
+\subsection{Keyboard Shortcuts}
+
+\begin{table}[H]
+\centering
+\caption{Keyboard shortcuts available in \musictui.}
+\label{tab:keybindings}
+\begin{tabular}{ccp{8cm}}
+\toprule
+\textbf{Key} & \textbf{Mode} & \textbf{Action} \\
+\midrule
+\texttt{h} & Always & Navigate to Home screen \\
+\texttt{s} & Always & Navigate to Search screen \\
+\texttt{l} & Always & Navigate to Library screen \\
+\texttt{f} & Always & Toggle fullscreen album art \\
+\texttt{q} & Always & Quit application \\
+\texttt{a} & Home/Search & Add currently playing track to playlist \\
+\texttt{n} & Library & Create new playlist \\
+\texttt{d} & Library/Playlist & Delete playlist / Remove song \\
+\texttt{r} & Library & Rename selected playlist \\
+\texttt{Escape} & Lyrics/Fullscreen & Close overlay screen \\
+\texttt{Enter} & Search bar & Submit search query \\
+\texttt{Escape} & Search input & Clear search input \\
+\bottomrule
+\end{tabular}
+
+\end{table}
+
+\section{Future Work}
+
+Several areas have been identified for future enhancement of \musictui:
+
+\subsection{Additional Music Providers}
+The \catalogsource \protocol is designed to support multiple backends.
+Planned implementations include: local file system provider with
+\texttt{mutagen} metadata extraction, Spotify integration via \texttt{spotipy},
+and Deezer integration via \texttt{deezer-python}.
+
+\subsection{Enhanced Lyrics Features}
+\begin{itemize}
+    \item \textbf{Karaoke-style word-level highlighting:} Current lyrics
+          display line-level highlighting. Word-level timing data from
+          lrclib's \texttt{syncedLyricsPlain} field could enable per-word
+          highlighting.
+    \item \textbf{Offline lyrics caching:} Cache fetched lyrics to disk
+          for offline playback.
+    \item \textbf{Multi-language lyrics:} Display lyrics in multiple
+          languages simultaneously when available.
+\end{itemize}
+
+\subsection{Audio Enhancements}
+\begin{itemize}
+    \item \textbf{Equalizer:} Real-time audio equalization using \vlc's
+          built-in equalizer presets.
+    \item \textbf{Crossfade:} Smooth transitions between tracks.
+    \item \textbf{Audio visualization:} Real-time waveform or frequency
+          spectrum visualization using \numpy's FFT capabilities.
+    \item \textbf{Multi-backend support:} Add \texttt{pygame.mixer} or
+          \texttt{portaudio} backends for systems where \vlc is unavailable.
+\end{itemize}
+
+\subsection{UI Improvements}
+\begin{itemize}
+    \item \textbf{Theme system:} Allow users to define custom colour themes
+          via a \texttt{themes/} directory of \texttt{.tcss} files.
+    \item \textbf{Responsive layouts:} Adapt the grid layout for small
+          terminals (below 80 columns) by hiding the sidebar.
+    \item \textbf{Mouse support:} Full mouse interaction for track selection,
+          slider dragging, and button clicking across all screens.
+    \item \textbf{Recently played screen:} Display a history of recently
+          played tracks with the ability to re-play.
+\end{itemize}
+
+\subsection{Data and Analytics}
+\begin{itemize}
+    \item \textbf{Listening statistics:} Track total listening time, most
+          played artists, and most played tracks.
+    \item \textbf{Export/import:} Export playlists as \texttt{.m3u} or
+          \texttt{.xspf} files; import from \texttt{.m3u}, \texttt{.xspf},
+          or Spotify CSV exports.
+\end{itemize}
+
+\section{Conclusion}
+
+This paper has presented \musictui, a terminal-based music player that
+demonstrates how modern Python frameworks can produce rich, interactive
+applications within the terminal environment. The project showcases several
+key software engineering practices:
+
+\begin{itemize}
+    \item \textbf{Protocol-based architecture} provides a clean separation
+          of concerns while maintaining flexibility for future extensions.
+    \item \textbf{Event-driven communication} through the \eventbus eliminates
+          tight coupling between components and enables independent evolution
+          of the playback engine and UI layers.
+    \item \textbf{Immutable domain models} using frozen dataclasses with
+          slots ensure thread safety and memory efficiency in a
+          multi-threaded environment.
+    \item \textbf{ANSI half-block colour art} provides a unique visual
+          experience that leverages the terminal's capabilities in a way
+          that desktop GUI applications cannot replicate.
+    \item \textbf{Multi-tier lyrics fetching} ensures maximum coverage for
+          synchronized lyrics through a systematic fallback chain.
+    \item \textbf{Comprehensive testing} with 167 unit tests across 10 test
+          modules, using in-memory mocks and SQLite in-memory databases,
+          provides confidence in the correctness of the application logic
+          without requiring external dependencies.
+\end{itemize}
+
+The \musictui project demonstrates that terminal-based applications can
+compete with desktop GUI applications in terms of features and user
+experience, while maintaining the advantages of terminal applications:
+lightweight resource usage, SSH accessibility, and keyboard-driven
+efficiency.
+
+\begin{thebibliography}{99}
+
+\bibitem{textual}
+Textual Framework.
+\newblock \texttt{https://textual.textualize.io/}
+\newblock A library for building terminal user interfaces in Python.
+
+\bibitem{vlc}
+VideoLAN.
+\newblock \texttt{https://www.videolan.org/vlc/}
+\newblock VLC media library -- a free and open-source cross-platform multimedia
+framework and player.
+
+\bibitem{sqlite}
+SQLite Consortium.
+\newblock \texttt{https://www.sqlite.org/}
+\newblock SQLite -- A C-language library that implements a small, fast,
+self-contained, high-reliability, full-featured, SQL database engine.
+
+\bibitem{pillow}
+Pillow (PIL Fork).
+\newblock \texttt{https://pillow.readthedocs.io/}
+\newblock The Python Imaging Library -- adds image processing capabilities to
+your Python interpreter.
+
+\bibitem{numpy}
+Harris, C. R., Millman, K. J., van der Walt, S. J., Gommers, R., Virtanen, P.,
+Cournapeau, D., \& Oliphant, T. E.
+\newblock Array programming with \texttt{numpy}.
+\newblock \emph{Nature}, 585(7825), 357--362, 2020.
+
+\bibitem{ytmusicapi}
+nathom.
+\newblock \texttt{https://github.com/nathom/ytmusicapi}
+\newblock A Python API for interacting with YouTube Music.
+
+\bibitem{ytdlp}
+yt-dlp contributors.
+\newblock \texttt{https://github.com/yt-dlp/yt-dlp}
+\newblock A youtube-dl fork with additional features and fixes.
+
+\bibitem{lrclib}
+lrclib.
+\newblock \texttt{https://lrclib.net/}
+\newblock A community-driven API for obtaining synced and plain lyrics.
+
+\bibitem{pytest}
+pytest contributors.
+\newblock \texttt{https://docs.pytest.org/}
+\newblock A framework for writing simple and scalable tests in Python.
+
+\bibitem{pyvlc}
+Pierre Raybaut.
+\newblock \texttt{https://github.com/nickolag/python-vlc}
+\newblock Python bindings for the VLC media library.
+
+\bibitem{python}
+Python Software Foundation.
+\newblock \texttt{https://www.python.org/}
+\newblock Python 3.12 -- What's New in Python 3.12.
+
+\end{thebibliography}
+
+\end{document}

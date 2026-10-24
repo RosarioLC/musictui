@@ -1,6 +1,5 @@
 from textual.widgets import Static
 
-
 # Default action hint template.
 _DEFAULT_HINTS: str = ""
 

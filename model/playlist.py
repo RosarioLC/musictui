@@ -1,60 +1,80 @@
 """Playlist model containing a sequence of tracks."""
 
+from collections.abc import Iterator
+
 from model.track import Track
-from typing import Iterator
 
 
-class Playlist():
-    """A collection of tracks with indexing and navigation helpers.
+class Playlist:
+    """Ordered collection of tracks with O(1) membership testing and navigation.
 
-    Maintains both a list (for ordered iteration) and a set (for O(1) membership),
-    keeping them in sync during mutations.
+    Internally maintains both a list (for ordered iteration and index-based
+    access) and a set of track IDs (for fast membership checks), keeping them
+    in sync during all mutations.  The cursor position tracks the currently
+    selected track within the playlist.
+
+    This class supports iteration, length queries, membership testing, and
+    navigation helpers (:meth:`next_song`, :meth:`previous_song`).
+
+    Attributes:
+        _id: Unique integer identifier for the playlist.
+        _name: Display name, defaulting to ``"No Name"`` if falsy.
+        _songs: Ordered list of :class:`Track` objects.
+        _position: Zero-based cursor position within the playlist.
+        _song_ids: Set of track IDs for O(1) membership testing.
     """
 
-    def __init__(self, id: int, name: str | None, songs: list[Track] | None, position: int = 0) -> None:
-        """Initialize a new Playlist.
+    def __init__(
+        self, id: int, name: str | None, songs: list[Track] | None, position: int = 0
+    ) -> None:
+        """Initialize a new playlist with optional initial tracks.
 
         Args:
-            id: Unique identifier for the playlist.
-            name: Display name; defaults to "No Name" if falsy.
-            songs: Initial tracks; defaults to empty list.
-            position: Initial cursor position.
+            id: Unique integer identifier for the playlist.
+            name: Display name. Defaults to ``"No Name"`` if falsy or
+                whitespace-only.
+            songs: Initial track list. Defaults to an empty list if ``None``.
+            position: Initial cursor position. Defaults to zero.
         """
         self._id: int = id
         self._name: str = name.strip() if name and name.strip() else "No Name"
         self._songs: list[Track] = list(songs) if songs else []
         self._position: int = position
-        # Set for O(1) membership testing.
         self._song_ids: set[int] = {t.id for t in self._songs}
 
     @property
     def id(self) -> int:
-        """Unique identifier for the playlist."""
+        """Return the unique integer identifier for this playlist."""
         return self._id
 
     @property
     def name(self) -> str:
-        """Display name of the playlist."""
+        """Return the display name of the playlist."""
         return self._name
 
     @name.setter
     def name(self, value: str | None) -> None:
-        """Update the playlist name, stripping whitespace."""
+        """Update the playlist name, stripping surrounding whitespace.
+
+        Args:
+            value: The new name. If falsy or whitespace-only, the name
+                is not changed.
+        """
         if value and value.strip():
             self._name = value.strip()
 
     @property
     def songs(self) -> list[Track]:
-        """The tracks in this playlist."""
+        """Return the ordered list of tracks in this playlist."""
         return self._songs
 
     @property
     def position(self) -> int:
-        """Current cursor position within the playlist."""
+        """Return the current cursor position within the playlist."""
         return self._position
 
     def __iter__(self) -> Iterator[Track]:
-        """Iterate over the tracks in the playlist."""
+        """Return an iterator over the tracks in order."""
         return iter(self._songs)
 
     def __len__(self) -> int:
@@ -62,19 +82,27 @@ class Playlist():
         return len(self._songs)
 
     def __contains__(self, track: object) -> bool:
-        """Check whether a track is in the playlist (O(1) lookup)."""
+        """Check whether a track is present using O(1) set lookup.
+
+        Args:
+            track: The track to check, or any other object.
+
+        Returns:
+            ``True`` if the track is in the playlist, ``False`` otherwise.
+        """
         if isinstance(track, Track):
             return track.id in self._song_ids
         return track in self._songs
 
     def add_song(self, track: Track) -> None:
-        """Add a track to the end of the playlist.
+        """Append a track to the end of the playlist.
 
         Args:
             track: The track to add.
 
         Raises:
-            ValueError: If track is None or already in the playlist.
+            ValueError: If *track* is ``None`` or already present in the
+                playlist.
         """
         if track is None:
             raise ValueError("Track is null")
@@ -91,7 +119,7 @@ class Playlist():
             track: The track to remove.
 
         Raises:
-            ValueError: If track is None or not in the playlist.
+            ValueError: If *track* is ``None`` or not present.
         """
         if track is None:
             raise ValueError("Track is null")
@@ -103,16 +131,16 @@ class Playlist():
             self._position = 0
 
     def next_song(self, track: Track) -> Track:
-        """Get the track that follows the given track.
+        """Return the track that follows *track* in the playlist.
 
         Args:
             track: The current track.
 
         Returns:
-            The next track in the playlist.
+            The next :class:`Track` in the sequence.
 
         Raises:
-            IndexError: If the track is the last in the playlist.
+            IndexError: If *track* is the last track in the playlist.
         """
         index = self._index_of(track)
         if index + 1 >= len(self._songs):
@@ -120,16 +148,16 @@ class Playlist():
         return self._songs[index + 1]
 
     def previous_song(self, track: Track) -> Track:
-        """Get the track that precedes the given track.
+        """Return the track that precedes *track* in the playlist.
 
         Args:
             track: The current track.
 
         Returns:
-            The previous track in the playlist.
+            The previous :class:`Track` in the sequence.
 
         Raises:
-            IndexError: If the track is the first in the playlist.
+            IndexError: If *track* is the first track in the playlist.
         """
         index = self._index_of(track)
         if index <= 0:
@@ -137,16 +165,16 @@ class Playlist():
         return self._songs[index - 1]
 
     def _index_of(self, track: Track) -> int:
-        """Get the zero-based index of a track in the playlist.
+        """Return the zero-based index of *track* within the playlist.
 
         Args:
             track: The track to locate.
 
         Returns:
-            The index of the track.
+            The zero-based index of the track in the internal list.
 
         Raises:
-            InvalidMusicCollectionException: If track is None or not found.
+            ValueError: If *track* is ``None`` or not present in the playlist.
         """
         if track is None or track not in self._songs:
             raise ValueError("Track is not in the playlist")

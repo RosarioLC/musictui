@@ -20,28 +20,29 @@ class LikedSongStore:
             track: The track to like.
         """
         self._db.execute(
-            "INSERT INTO liked_songs (track_id) VALUES (?)", (track.id,)
+            "INSERT OR IGNORE INTO liked_songs (provider_id) VALUES (?)",
+            (track.provider_id,),
         )
         self._db.commit()
 
-    def remove(self, track_id: int) -> None:
+    def remove(self, track: Track) -> None:
         """Remove a track from the liked songs collection.
 
         Args:
-            track_id: ID of the track to unlike.
+            track: The track to unlike.
         """
         self._db.execute(
-            "DELETE FROM liked_songs WHERE track_id = ?", (track_id,)
+            "DELETE FROM liked_songs WHERE provider_id = ?", (track.provider_id,)
         )
         self._db.commit()
 
-    def list_ids(self) -> list[int]:
-        """Return a list of all liked track IDs, ordered by ID.
+    def list_ids(self) -> list[str]:
+        """Return a list of all liked provider IDs, ordered by ID.
 
         Returns:
-            List of track ID integers.
+            List of provider ID strings.
         """
         rows = self._db.fetchall(
-            "SELECT track_id FROM liked_songs ORDER BY track_id"
+            "SELECT provider_id FROM liked_songs ORDER BY provider_id"
         )
-        return [int(row["track_id"]) for row in rows]
+        return [row["provider_id"] for row in rows]

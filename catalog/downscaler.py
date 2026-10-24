@@ -5,7 +5,6 @@ from __future__ import annotations
 from functools import lru_cache
 from io import BytesIO
 from urllib.request import urlopen
-from typing import TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
@@ -17,19 +16,22 @@ CELL_ASPECT: float = 2.1
 # Pre-compiled format string for ANSI escape sequences.
 _ANSI_FMT: str = "\x1b[48;2;{};{};{}m\x1b[38;2;{};{};{}m\u2584"
 
-if TYPE_CHECKING:
-    pass  # No type-only imports needed at the moment.
-
 
 @lru_cache(maxsize=128)
 def _read_image(source: str) -> bytes:
-    """Read an image from a local file or URL.
+    """Fetch raw image bytes from a local file path or HTTP(S) URL.
+
+    The result is cached via :func:`lru_cache` to avoid redundant I/O
+    when the same image is rendered multiple times.
 
     Args:
-        source: File path or HTTP(S) URL.
+        source: A file system path or an ``http://`` / ``https://`` URL.
 
     Returns:
-        The raw image bytes.
+        The complete raw bytes of the image file.
+
+    Raises:
+        OSError: If the file cannot be read or the URL cannot be fetched.
     """
     if source.startswith(("http://", "https://")):
         with urlopen(source, timeout=10) as response:
@@ -43,21 +45,28 @@ def downscale(
     image_path: str,
     cols: int = DEFAULT_COLS,
     cell_aspect: float = CELL_ASPECT,
-
 ) -> str:
-    """Downscale an image to ANSI half-block colour text.
+    """Render an image as ANSI half-block colour text for terminal display.
 
-    The image is resampled to a grid of *cols* columns, with two pixel
-    rows combined into one ANSI half-block character (using the top row
-    for background colour and the bottom row for foreground colour).
+    The source image is resampled to a grid of *cols* character columns.
+    Two pixel rows are combined into a single ANSI half-block character:
+    the top row determines the background colour and the bottom row
+    determines the foreground colour.
+
+    The result is cached via :func:`lru_cache` keyed by all three
+    arguments, so repeated calls with the same parameters return the
+    same string without reprocessing.
 
     Args:
         image_path: Path to the image file or an HTTP(S) URL.
-        cols: Number of character columns in the output.
-        cell_aspect: Aspect ratio of a character cell (width / height).
+        cols: Number of character columns in the output. Defaults to 24.
+        cell_aspect: Aspect ratio of a terminal character cell
+            (width divided by height). Defaults to 2.1.
 
     Returns:
-        ANSI-escaped text rendering of the image.
+        A string containing ANSI escape sequences that, when printed to
+        a colour-capable terminal, renders a scaled-down colour version
+        of the source image using half-block characters.
     """
     text_rows: int = max(1, round(cols / cell_aspect))
     W: int = cols
@@ -69,14 +78,11 @@ def downscale(
         image = image.resize((W, H), Image.BICUBIC)
         arr: np.ndarray = np.asarray(image)
 
-        # Build ANSI half-block output (two pixel rows -> one half-block).
-        # Pre-convert to list for faster indexing.
         rows_list: list[np.ndarray] = arr.tolist()
         lines: list[str] = []
         for ty in range(0, H, 2):
             top: list[list[int]] = rows_list[ty]
             bot: list[list[int]] = rows_list[ty + 1]
-            # Build the line using list comprehension (faster than generator for join).
             line_parts: list[str] = [
                 _ANSI_FMT.format(a[0], a[1], a[2], b[0], b[1], b[2])
                 for a, b in zip(top, bot)

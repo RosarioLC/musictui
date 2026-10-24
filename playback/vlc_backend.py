@@ -4,7 +4,6 @@ from typing import Any
 
 import vlc
 
-
 # Volume range supported by VLC.
 _VOLUME_MAX: int = 100
 

@@ -1,9 +1,8 @@
-from textual.widgets import Static, Button
 from textual.app import ComposeResult
 from textual.reactive import reactive
+from textual.widgets import Button, Static
 
 from ui.widgets.slider import Slider
-
 
 # Default volume level.
 _DEFAULT_VOLUME: int = 75
@@ -28,7 +27,7 @@ class VolumeControl(Static):
     def on_mount(self) -> None:
         """Cache the player reference once."""
         if self.app and hasattr(self.app, "_player"):
-            self._player_ref = getattr(self.app, "_player")
+            self._player_ref = self.app._player
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Toggle mute/unmute."""

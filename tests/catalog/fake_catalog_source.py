@@ -9,7 +9,8 @@ class FakeCatalogSource(CatalogSource):
     def search(self, query: str) -> list[Track]:
         query_lower = query.lower()
         return [
-            t for t in self._tracks
+            t
+            for t in self._tracks
             if query_lower in t.title.lower()
             or query_lower in t.artist.lower()
             or query_lower in t.album.lower()

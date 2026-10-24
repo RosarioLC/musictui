@@ -4,12 +4,11 @@ from functools import partial
 from typing import Any, cast
 
 from rich.text import Text
+from textual.events import Resize
 from textual.widgets import Static
 from textual.worker import Worker, WorkerState
-from textual.events import Resize
 
 from catalog.downscaler import CELL_ASPECT, downscale
-
 
 # Default placeholder text (empty ANSI render).
 _DEFAULT_TEXT: str = ""
@@ -50,7 +49,6 @@ class AlbumArt(Static):
         if not self._source or self.size.width <= 0 or self.size.height <= 0:
             return
         self._render_generation += 1
-        generation: int = self._render_generation
         if self._art_cols is not None:
             cols = self._art_cols
         else:

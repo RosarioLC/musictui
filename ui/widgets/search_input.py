@@ -1,5 +1,7 @@
-from textual.widgets import Input
+from typing import ClassVar
+
 from textual.binding import Binding
+from textual.widgets import Input
 
 
 class SearchInput(Input):
@@ -9,7 +11,7 @@ class SearchInput(Input):
         Escape: Clear the input field.
     """
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("escape", "clear", "Clear"),
     ]
 

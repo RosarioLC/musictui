@@ -1,5 +1,5 @@
-from textual.widgets import Static
 from textual.app import ComposeResult
+from textual.widgets import Static
 
 from ui.widgets.nav_items import NavItem
 

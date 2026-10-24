@@ -1,7 +1,10 @@
-from textual.widgets import Label, ListItem, ListView, Static
-from textual.app import ComposeResult
-from model import LyricLine
 import bisect
+from typing import ClassVar
+
+from textual.app import ComposeResult
+from textual.widgets import Label, ListItem, ListView, Static
+
+from model import LyricLine
 
 # Maximum number of lyric lines to keep in memory.
 _MAX_LINES: int = 500
@@ -9,8 +12,9 @@ _MAX_LINES: int = 500
 
 class LyricsPanel(Static):
     """Shows synced LRC lyrics, highlighting the current line."""
+
     # -- internal state
-    _lines: list[LyricLine] = []
+    _lines: ClassVar[list[LyricLine]] = []
     _timed: bool = False
     _active_line: int = -1
     _list_view_ref: ListView | None = None
@@ -25,7 +29,7 @@ class LyricsPanel(Static):
         """Cache the list view reference."""
         try:
             self._list_view_ref = self.query_one("#lyrics-list", ListView)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def set_lyrics(self, lines: list[LyricLine]) -> None:
@@ -34,7 +38,7 @@ class LyricsPanel(Static):
         Args:
             lines: List of :class:`~model.lyric_line.LyricLine` objects.
         """
-        self._lines = lines[:_MAX_LINES]  # Limit to prevent memory issues.
+        self._lines = lines[:_MAX_LINES]
         self._timed = any(line.timestamp_ms > 0 for line in self._lines)
         self._active_line = -1
 
@@ -87,12 +91,10 @@ class LyricsPanel(Static):
         if not lines:
             return
 
-        # Binary search: find the rightmost line with timestamp <= position_ms.
         timestamps = [line.timestamp_ms for line in lines]
         active_index = bisect.bisect_right(timestamps, position_ms) - 1
 
         if active_index < 0:
-            # No line is active — clear highlights.
             list_view = self._list_view_ref
             if list_view is None:
                 return
@@ -102,15 +104,13 @@ class LyricsPanel(Static):
             return
 
         if active_index == self._active_line:
-            return  # Already highlighted.
+            return
 
         list_view = self._list_view_ref
         if list_view is None:
             return
-        # Clear previous highlight.
         if 0 <= self._active_line < len(list_view.children):
             list_view.children[self._active_line].set_class(False, "lyrics-active")
-        # Set new highlight.
         if 0 <= active_index < len(list_view.children):
             list_view.children[active_index].set_class(True, "lyrics-active")
         self._active_line = active_index

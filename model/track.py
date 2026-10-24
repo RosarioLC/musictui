@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace as _dc_replace
+from dataclasses import dataclass
+from dataclasses import replace as _dc_replace
 
 # Module-level constants for default values.
 # Using constants instead of a shared dict avoids accidental mutation.
@@ -16,10 +17,31 @@ _DEFAULT_URL: str = ""
 
 @dataclass(slots=True, frozen=True)
 class Track:
-    """Represents a single music track with metadata.
+    """Immutable representation of a single music track with full metadata.
 
-    Tracks are effectively immutable. Fields are validated and normalized
-    at construction time.
+    Tracks are effectively immutable: all fields are validated and normalized
+    at construction time via :meth:`__post_init__`.  Empty or whitespace-only
+    string fields are replaced with sensible defaults.  The :meth:`replace`
+    method supports functional-style updates by producing a new :class:`Track`
+    with selected fields changed.
+
+    Tracks are hashable by ID, making them suitable for use in sets and as
+    dictionary keys.  Equality is determined solely by the ``id`` field.
+
+    Attributes:
+        id: Unique integer identifier for this track within the application.
+        title: The track's display title. Defaults to ``"Unknown Title"``.
+        artist: The primary artist name. Defaults to ``"Unknown Artist"``.
+        album: The parent album name. Defaults to ``"Unknown Album"``.
+        duration_ms: Total duration in milliseconds. Clamped to zero if negative.
+        image_path: File path or URL for album artwork. Defaults to
+            ``"Unknown Image Path"``.
+        lyrics_path: File path for local LRC lyrics. Defaults to
+            ``"Unknown Lyrics Path"``.
+        url: Playable URL (e.g. YouTube Music watch URL). Defaults to empty
+            string.
+        provider_id: External provider identifier (e.g. YouTube video ID).
+            Defaults to empty string.
     """
 
     id: int
@@ -33,11 +55,11 @@ class Track:
     provider_id: str = ""
 
     def __post_init__(self) -> None:
-        """Normalize empty / whitespace-only fields to defaults.
+        """Normalize empty or whitespace-only fields to defaults.
 
-        Uses object.__setattr__ because the dataclass uses slots (not frozen).
+        Uses :func:`object.__setattr__` because the dataclass uses slots
+        (but is not frozen).  Also clamps ``duration_ms`` to non-negative.
         """
-        # Inline the common fields for speed.
         if not self.title or not self.title.strip():
             object.__setattr__(self, "title", _DEFAULT_TITLE)
         if not self.artist or not self.artist.strip():
@@ -50,12 +72,15 @@ class Track:
             object.__setattr__(self, "lyrics_path", _DEFAULT_LYRICS_PATH)
         if not self.url or not self.url.strip():
             object.__setattr__(self, "url", _DEFAULT_URL)
-        # Ensure duration is non-negative.
         if self.duration_ms < 0:
             object.__setattr__(self, "duration_ms", 0)
 
     def to_dict(self) -> dict[str, object]:
-        """Serialize the track to a plain dictionary."""
+        """Serialize the track to a plain dictionary suitable for storage.
+
+        Returns:
+            A dictionary mapping each attribute name to its current value.
+        """
         return {
             "id": self.id,
             "title": self.title,
@@ -68,22 +93,38 @@ class Track:
         }
 
     def __hash__(self) -> int:
-        """Hash based on track ID for use in sets / dicts."""
+        """Compute hash based on track ID for use in sets and dictionaries.
+
+        Returns:
+            Hash of the track's ID.
+        """
         return hash(self.id)
 
     def __eq__(self, other: object) -> bool:
-        """Tracks are equal if their IDs match."""
+        """Compare tracks for equality based on their ID.
+
+        Args:
+            other: The object to compare against.
+
+        Returns:
+            ``True`` if *other* is a :class:`Track` with the same ID.
+        """
         if not isinstance(other, Track):
             return NotImplemented
         return self.id == other.id
 
-    def replace(self, **changes: object) -> "Track":
-        """Return a new Track with the given fields replaced.
+    def replace(self, **changes: object) -> Track:
+        """Return a new :class:`Track` with the specified fields updated.
+
+        This method follows the functional-update pattern common with frozen
+        dataclasses: it does not mutate the current instance but instead
+        produces a new one with the requested changes applied.
 
         Args:
-            **changes: Fields to replace (e.g. ``title="New"``).
+            **changes: Field names and their new values to replace
+                (e.g. ``title="New Title"``).
 
         Returns:
-            A new :class:`Track` instance with updated fields.
+            A new :class:`Track` instance with the updated fields.
         """
         return _dc_replace(self, **changes)  # type: ignore[call-overload]

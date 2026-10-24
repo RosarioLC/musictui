@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, cast
-
-from textual.app import App
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from model.repeat_mode import RepeatMode
+from model.track import Track
 from playback.audio_backend import AudioBackend
 from playback.music_queue import MusicQueue
-from model.track import Track
 
 if TYPE_CHECKING:
-    from ui.widgets.now_playing_bar import NowPlayingBar
-    from ui.widgets.queue_panel import QueuePanel
+    from textual.app import App
 
 
 class Player:
@@ -21,7 +19,7 @@ class Player:
 
     The :class:`Player` sits between the audio backend, the playback queue,
     and the UI widgets.  It handles track transitions, repeat logic,
-    and UI updates.
+    and emits events for UI updates.
 
     Args:
         backend: The audio playback backend.
@@ -59,11 +57,7 @@ class Player:
         if not self._queue.contains(track):
             self._queue.add(track)
         self._queue.skip_to(track)
-        url = (
-            self._stream_resolver(track)
-            if self._stream_resolver
-            else track.url
-        )
+        url = self._stream_resolver(track) if self._stream_resolver else track.url
         self._backend.play(url)
 
         # Preload assets for the newly playing track.
@@ -171,13 +165,13 @@ class Player:
         self._on_track_ended()
 
     def _schedule_ui_update(self) -> None:
-        """Schedule a UI update via the Textual app, if available."""
+        """Schedule a UI update callback via the Textual app, if available."""
         app = self._app
         if app:
             app.call_later(self._update_ui)
 
     def _update_ui(self) -> None:
-        """Refresh mounted playback widgets."""
+        """Refresh mounted playback widgets via the app's event system."""
         app = self._app
         if app is None:
             return
@@ -185,19 +179,17 @@ class Player:
         if current is None:
             return
 
-        # Update NowPlayingBar widgets.
-        for widget in app.query("NowPlayingBar"):
-            bar = cast("NowPlayingBar", widget)
-            bar.update_track(current)
-            bar.current_title = current.title
-            bar.current_artist = current.artist
-            bar.progress_ms = self.position_ms
-            bar.duration_ms = self.duration_ms
-            bar.is_playing = self.is_playing
+        # Post events for widgets to consume.
+        if hasattr(app, "post_message"):
+            from ui.messages import (
+                PlaybackStateChanged,
+                PositionUpdated,
+                QueueUpdated,
+            )
 
-        # Update QueuePanel widgets.
-        for widget in app.query("QueuePanel"):
-            cast("QueuePanel", widget).update_tracks(self._queue.upcoming)
+            app.post_message(PlaybackStateChanged(self.is_playing, self.is_paused))
+            app.post_message(PositionUpdated(self.position_ms, self.duration_ms))
+            app.post_message(QueueUpdated(self.queue))
 
     @property
     def queue(self) -> list[Track]:
