@@ -142,7 +142,7 @@ $ python -m pytest tests/ -v
 
 ## Publication
 
-A companion academic paper describing the architecture and implementation is included as `musictui_paper.tex` (LaTeX source, compiles to PDF with `pdflatex`).
+A companion academic paper describing the architecture and implementation is included as `MusicTUI.pdf`.
 
 ## Installation
 
