@@ -39,19 +39,19 @@ A terminal-based music player built with [Textual](https://textual.textualize.io
 
 ### Home Screen
 
-![Home Screen](images/ui_layout.png)
+![Home Screen](images/ui_layout.png.jpg)
 
 ### Lyrics Overlay
 
-![Lyrics Overlay](images/lyrics_screen.png)
+![Lyrics Overlay](images/lyrics_screen.png.jpg)
 
 ### Library
 
-![Library](images/library_screen.png)
+![Library](images/library_screen.png.jpg)
 
 ### Fullscreen Album Art
 
-![Fullscreen Album Art](images/fullscreen_art.png)
+![Fullscreen Album Art](images/fullscreen_art.png.jpg)
 
 ## Architecture
 
@@ -206,14 +206,6 @@ musictui
 | `D` | Library / Playlist | Delete playlist / Remove track from playlist |
 | `Up/Down` | Results tables | Navigate track list |
 | `Enter` | Results tables | Play selected track |
-
-## What's Next
-
-- [x] Local file playback (MP3, FLAC)
-- [x] Spotify integration as an alternative source
-- [ ] Crossfade between tracks
-- [ ] Custom themes / color schemes
-- [ ] Web UI option
 
 ## License
 
