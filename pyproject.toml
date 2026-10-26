@@ -19,6 +19,7 @@ dependencies = [
     "Pillow",
     "ytmusicapi",
     "syncedlyrics",
+    "yt-dlp"
 ]
 
 [project.optional-dependencies]
