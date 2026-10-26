@@ -70,31 +70,72 @@ Built with [Textual](https://textual.textualize.io/). Streams from YouTube Music
 
 ### 1. System prerequisites
 
-MusicTUI uses VLC as its audio playback engine. Install the native VLC binaries (plus ffmpeg) with your system package manager, otherwise audio streaming won't work.
+MusicTUI uses VLC as its audio playback engine. Install the native VLC binaries (plus ffmpeg) first, otherwise audio streaming won't work.
 
-| Distro | Command |
+| Platform | Command |
 |---|---|
 | **Arch Linux** | `sudo pacman -S vlc ffmpeg` |
 | **Ubuntu / Debian** | `sudo apt install vlc ffmpeg` |
 | **Fedora** | `sudo dnf install vlc ffmpeg` |
+| **Windows** | `winget install VideoLAN.VLC Gyan.FFmpeg` (or download VLC from [videolan.org](https://www.videolan.org/vlc/)) |
 
-### 2. Install from PyPI
+> [!TIP]
+> On Windows, the VLC build must match your Python build (64-bit VLC with 64-bit Python), or the audio backend won't load.
 
-Install globally with `pipx` (recommended on modern Linux environments):
+### 2. Install with pipx (recommended)
+
+[pipx](https://pipx.pypa.io/) installs MusicTUI in its own isolated environment and puts the `musictui` command on your PATH.
+
+**Linux**
+
+```bash
+# Install pipx (pick your distro)
+sudo pacman -S python-pipx      # Arch
+sudo apt install pipx           # Ubuntu / Debian
+sudo dnf install pipx           # Fedora
+
+pipx ensurepath
+```
+
+**Windows** (PowerShell or Command Prompt)
+
+```cmd
+py -m pip install --user pipx
+py -m pipx ensurepath
+```
+
+Restart your terminal after running `ensurepath`, then install and launch MusicTUI (same command on both platforms):
 
 ```bash
 pipx install musictui-ros
-```
-
-Then launch it with:
-
-```bash
 musictui
 ```
 
-### Alternative: from source (Windows)
+To update later: `pipx upgrade musictui-ros`
 
-Open **PowerShell** or **Command Prompt** and run:
+### 3. Build from source
+
+Use this if you want to hack on the code or run the test suite.
+
+**Linux**
+
+```bash
+# Clone the repository
+git clone https://github.com/RosarioLC/musictui.git
+cd musictui
+
+# Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install in development mode
+pip install -e ".[dev]"
+
+# Run the app
+musictui
+```
+
+**Windows** (PowerShell or Command Prompt)
 
 ```cmd
 :: Clone the repository
