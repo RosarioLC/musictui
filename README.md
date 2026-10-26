@@ -1,42 +1,142 @@
-<p align="center">
-  <img src="images/logo.png" alt="MusicTUI" width="480">
-</p>
+<div align="center">
 
-A terminal-based music player built with [Textual](https://textual.textualize.io/) that streams from YouTube Music, displays synchronized lyrics, and renders album art directly in the terminal using ANSI half-block characters.
+<img src="images/logo.png" alt="MusicTUI" width="480">
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)
-![License](https://img.shields.io/github/license/RosarioLC/musictui?style=flat&color=blue)
-![Tests](https://img.shields.io/badge/tests-167_passed-4CAF50?style=flat)
+### A terminal music player that streams, sings along, and shows off its album art
 
-## Features
+Built with [Textual](https://textual.textualize.io/). Streams from YouTube Music, displays synchronized lyrics, and renders album art directly in your terminal using ANSI half-block characters.
 
-- **🎧 Real-time playback** — Streams directly from YouTube Music using `ytmusicapi`, with VLC as the audio backend
-- **📜 Synchronized lyrics** — Fetches lyrics via YouTube Music and the `syncedlyrics` library, with timestamp-based highlighting as the song plays
-- **🎨 Terminal-rendered album art** — Uses NumPy and Pillow to downscale images to ANSI half-block colour characters, rendered in real-time
-- **📋 Playlist management** — Create new playlists (N), add currently playing track to a playlist (A), remove tracks (D), and delete playlists
-- **🔀 Smart queue** — Skip, history-aware back navigation, and repeat modes (OFF / ALL / ONE)
-- **🖥️ Fullscreen album art** — Press `F` to enter fullscreen mode with the album art rendered at full terminal resolution
-- **⚡ Background workers** — Artwork rendering, stream resolution, and lyrics fetching all happen in threaded workers with generation-based cancellation to avoid race conditions
+<br>
 
-## Screenshots
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![License](https://img.shields.io/github/license/RosarioLC/musictui?style=for-the-badge&color=blue)
+![Tests](https://img.shields.io/badge/tests-167_passed-4CAF50?style=for-the-badge)
 
-### Home Screen
+<br>
 
-![Home Screen](images/ui_layout.png.jpg)
+[Features](#-features) •
+[Screenshots](#-screenshots) •
+[Installation](#-installation) •
+[Shortcuts](#-keyboard-shortcuts) •
+[Architecture](#-architecture) •
+[Testing](#-testing)
 
-### Lyrics Overlay
+</div>
 
-![Lyrics Overlay](images/lyrics_screen.png.jpg)
+---
 
-### Library
+## ✨ Features
 
-![Library](images/library_screen.png.jpg)
+| | Feature | Details |
+|:-:|---|---|
+| 🎧 | **Real-time playback** | Streams directly from YouTube Music using `ytmusicapi`, with VLC as the audio backend |
+| 📜 | **Synchronized lyrics** | Fetches lyrics via YouTube Music and the `syncedlyrics` library, with timestamp-based highlighting as the song plays |
+| 🎨 | **Terminal-rendered album art** | Uses NumPy and Pillow to downscale images to ANSI half-block colour characters, rendered in real time |
+| 📋 | **Playlist management** | Create playlists (`N`), add the current track to a playlist (`A`), remove tracks (`D`), and delete playlists |
+| 🔀 | **Smart queue** | Skip, history-aware back navigation, and repeat modes (`OFF` / `ALL` / `ONE`) |
+| 🖥️ | **Fullscreen album art** | Press `F` to view the album art at full terminal resolution |
+| ⚡ | **Background workers** | Artwork rendering, stream resolution, and lyrics fetching run in threaded workers with generation-based cancellation to avoid race conditions |
 
-### Fullscreen Album Art
+---
 
-![Fullscreen Album Art](images/fullscreen_art.png.jpg)
+## 📸 Screenshots
 
-## Architecture
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <b>Home Screen</b><br>
+      <img src="images/ui_layout.png.jpg" alt="Home Screen">
+    </td>
+    <td align="center" width="50%">
+      <b>Lyrics Overlay</b><br>
+      <img src="images/lyrics_screen.png.jpg" alt="Lyrics Overlay">
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <b>Library</b><br>
+      <img src="images/library_screen.png.jpg" alt="Library">
+    </td>
+    <td align="center" width="50%">
+      <b>Fullscreen Album Art</b><br>
+      <img src="images/fullscreen_art.png.jpg" alt="Fullscreen Album Art">
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🚀 Installation
+
+### 1. System prerequisites
+
+MusicTUI uses VLC as its audio playback engine. Install the native VLC binaries (plus ffmpeg) with your system package manager, otherwise audio streaming won't work.
+
+| Distro | Command |
+|---|---|
+| **Arch Linux** | `sudo pacman -S vlc ffmpeg` |
+| **Ubuntu / Debian** | `sudo apt install vlc ffmpeg` |
+| **Fedora** | `sudo dnf install vlc ffmpeg` |
+
+### 2. Install from PyPI
+
+Install globally with `pipx` (recommended on modern Linux environments):
+
+```bash
+pipx install musictui-ros
+```
+
+Then launch it with:
+
+```bash
+musictui
+```
+
+### Alternative: from source (Windows)
+
+Open **PowerShell** or **Command Prompt** and run:
+
+```cmd
+:: Clone the repository
+git clone https://github.com/RosarioLC/musictui.git
+cd musictui
+
+:: Create and activate a virtual environment
+python -m venv .venv
+.venv\Scripts\activate
+
+:: Install in development mode
+pip install -e ".[dev]"
+
+:: Run the app
+musictui
+```
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Key | Screen | Action |
+|:-:|---|---|
+| `H` | Any | Go to Home (recommendations) |
+| `S` | Any | Go to Search |
+| `L` | Any | Go to Library |
+| `F` | Any | Toggle fullscreen album art |
+| `Q` | Any | Quit |
+| `A` | Home / Search | Add currently playing track to a playlist |
+| `N` | Library | Create a new playlist |
+| `D` | Library / Playlist | Delete playlist / remove track from playlist |
+| `↑` `↓` | Results tables | Navigate track list |
+| `Enter` | Results tables | Play selected track |
+
+---
+
+## 🏗️ Architecture
+
+<details>
+<summary><b>Project structure</b> (click to expand)</summary>
+
+<br>
 
 ```
 music/
@@ -103,92 +203,75 @@ music/
         └── modal.py                 # Playlist creation & picker dialogs
 ```
 
-### Design Principles
+</details>
 
-- **Protocol-based DI:** `CatalogSource` and `AudioBackend` are Python `Protocol` classes, enabling mock implementations for testing and future provider swaps.
-- **Event-driven communication:** The `EventBus` decouples the player from UI widgets — widgets subscribe to messages rather than polling.
-- **Immutable domain models:** Frozen dataclasses with `slots=True` ensure thread safety and memory efficiency.
-- **Provider-based track resolution:** Tracks use `provider_id` (YouTube video ID) for database integrity, with in-memory `zlib.crc32` IDs for quick lookups.
+### Design principles
 
-## Tech Stack
+| Principle | What it means |
+|---|---|
+| 🔌 **Protocol-based DI** | `CatalogSource` and `AudioBackend` are Python `Protocol` classes, enabling mock implementations for testing and future provider swaps |
+| 📡 **Event-driven communication** | The `EventBus` decouples the player from UI widgets, which subscribe to messages rather than polling |
+| 🧊 **Immutable domain models** | Frozen dataclasses with `slots=True` ensure thread safety and memory efficiency |
+| 🔑 **Provider-based track resolution** | Tracks use `provider_id` (YouTube video ID) for database integrity, with in-memory `zlib.crc32` IDs for quick lookups |
+
+---
+
+## 🧰 Tech Stack
 
 | Category | Technology |
 |---|---|
 | **TUI Framework** | Textual 0.40+ |
-| **Audio Playback** | VLC (python-vlc) |
-| **Music Source** | YouTube Music API (ytmusicapi) |
+| **Audio Playback** | VLC (`python-vlc`) |
+| **Music Source** | YouTube Music API (`ytmusicapi`) |
 | **Image Rendering** | NumPy, Pillow (PIL) |
-| **Lyrics Sync** | syncedlyrics, lrclib.net |
+| **Lyrics Sync** | `syncedlyrics`, lrclib.net |
 | **Database** | SQLite (stdlib) |
 | **Testing** | pytest (167 tests) |
 | **Language** | Python 3.12+ |
 
-## Testing
+---
+
+## 🧪 Testing
 
 The project ships with **167 unit tests** covering all production modules:
 
 | Module | Tests | Coverage |
-|---|---|---|
+|---|:-:|---|
 | `catalog/` | 30 | LRC parsing (15), lyrics provider (4), TrackCache (12), FakeCatalogSource (8) |
 | `models/` | 36 | Track (24), Playlist (28), PlayState (6), RepeatMode (6) |
 | `playback/` | 41 | MusicQueue (20), Player (21) |
 | `store/` | 24 | PlaylistStore (16), LikedSongStore (8) |
 
-Tests use `FakeBackend` and `FakeCatalogSource` mock implementations, and in-memory SQLite databases (`Database(":memory:")`) — no external dependencies required.
+Tests use `FakeBackend` and `FakeCatalogSource` mock implementations plus in-memory SQLite databases (`Database(":memory:")`), so no external dependencies are required.
 
 ```bash
 $ python -m pytest tests/ -v
 ======================== 167 passed in 0.16s =========================
 ```
 
-## Publication
+---
 
-A companion academic paper describing the architecture and implementation is included as `MusicTUI.pdf`.
+## 📄 Publication
 
-## Installation
+A companion academic paper describing the architecture and implementation is included as [`MusicTUI.pdf`](MusicTUI.pdf).
 
-### From source
+---
 
-```bash
-# Clone the repository
-git clone https://github.com/RosarioLC/musictui.git
-cd musictui
+## 📜 License
 
-# Create and activate a virtual environment
-python -m venv .venv
-.venv\Scripts\activate       # Windows
-source .venv/bin/activate    # macOS / Linux
+Released under the [MIT License](LICENSE). Copyright © 2025 RosarioLC.
 
-# Install in development mode
-pip install -e ".[dev]"
+---
 
-# Run the app
-musictui
-# or
-python -m main
-```
+> [!NOTE]
+> **Disclaimer:** MusicTUI is not affiliated with, endorsed by, or connected to YouTube, Google, or Alphabet Inc. All music content is streamed directly from YouTube's servers via the `ytmusicapi` library. YouTube Music trademarks and content belong to their respective owners.
 
-## Keyboard Shortcuts
+<div align="center">
 
-| Key | Screen | Action |
-|---|---|---|
-| `H` | Any | Go to Home (recommendations) |
-| `S` | Any | Go to Search |
-| `L` | Any | Go to Library |
-| `F` | Any | Toggle fullscreen album art |
-| `Q` | Any | Quit |
-| `A` | Home / Search | Add currently playing track to a playlist |
-| `N` | Library | Create a new playlist |
-| `D` | Library / Playlist | Delete playlist / Remove track from playlist |
-| `Up/Down` | Results tables | Navigate track list |
-| `Enter` | Results tables | Play selected track |
+<sub>Made with 🎵 and a lot of half-block characters</sub>
 
-## License
+<br>
 
-[MIT License](LICENSE) — Copyright (c) 2025 RosarioLC
+[⬆ Back to top](#)
 
-## Disclaimer
-
-MusicTUI is not affiliated with, endorsed by, or connected to YouTube, Google, or Alphabet Inc.
-All music content is streamed directly from YouTube's servers via the ytmusicapi library.
-YouTube Music trademarks and content belong to their respective owners.
+</div>
