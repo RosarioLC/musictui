@@ -1,4 +1,6 @@
-# MusicTUI
+<p align="center">
+  <img src="images/logo.png" alt="MusicTUI" width="480">
+</p>
 
 A terminal-based music player built with [Textual](https://textual.textualize.io/) that streams from YouTube Music, displays synchronized lyrics, and renders album art directly in the terminal using ANSI half-block characters.
 
