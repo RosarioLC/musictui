@@ -184,7 +184,10 @@ class TrackList(Static):
                 on_select=self._on_track_select,
                 on_like=partial(self._on_toggle_like),
             )
-            self._track_container.mount(row)
+            if self._track_container.is_attached:
+                self._track_container.mount(row)
+            else:
+                self.call_after_refresh(self._track_container.mount, row)
             if track.image_path and not track.image_path.startswith("Unknown"):
                 self.run_worker(
                     partial(self._render_art, generation, idx, track.image_path),
@@ -217,7 +220,10 @@ class TrackList(Static):
                 on_select=self._on_track_select,
                 on_like=partial(self._on_toggle_like),
             )
-            self._track_container.mount(row)
+            if self._track_container.is_attached:
+                self._track_container.mount(row)
+            else:
+                self.call_after_refresh(self._track_container.mount, row)
             if track.image_path and not track.image_path.startswith("Unknown"):
                 self.run_worker(
                     partial(self._render_art, generation, actual_row, track.image_path),
